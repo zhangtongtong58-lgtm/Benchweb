@@ -1,0 +1,1769 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Benchmark 平台 · 定稿 · HiFloat 设计规范版（亮色主题 · 功能与方案A v0.11 一致）</title>
+<style>
+/* ===== HiFloat 设计规范定稿版（亮色主题）：工程师美学——扁平、克制、无投影，1px 边框 + 白灰交替分区；设计宽度 1440px 居中 ===== */
+:root{
+  /* 字体（规范 §4） */
+  --font-body:HarmonyOS,Inter,-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",Arial,sans-serif;
+  --font-code:SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono",monospace;
+  /* 品牌与语义色（规范 §3.1） */
+  --color-primary:#0969DA;--color-primary-hover:#4E97E7;
+  --color-primary-active:#0D5EB8;--color-primary-bg:#E2EDFD;
+  --color-accent-red:#CF222E;
+  --color-success:#0BB151;--color-warning:#FA7305;--color-danger:#E60012;
+  --color-aux-blue:#2E53FA;--color-aux-purple:#984BF6;
+  /* 中性色（规范 §3.2） */
+  --color-bg-page:#FFFFFF;--color-bg-section:#F6F8FA;
+  --color-bg-control:#F0F2F5;--color-bg-card:#FFFFFF;
+  --color-border:rgba(0,0,0,.1);--color-border-control:#D0D7DF;
+  --color-text-1:rgba(0,0,0,.85);--color-text-2:rgba(0,0,0,.8);
+  --color-text-3:rgba(0,0,0,.6);--color-text-4:rgba(0,0,0,.4);
+  /* 圆角三档（规范 §3.3） */
+  --radius-control:4px;--radius-card:8px;--radius-pill:736px;
+  /* 阴影（慎用，默认无阴影） */
+  --shadow-1:0 3px 8px rgba(0,0,0,.08);
+  --shadow-2:0 2px 24px rgba(0,0,0,.15);
+  /* 动效（规范 §8） */
+  --duration-s:.2s;--easing-standard:cubic-bezier(.2,0,0,1);
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:var(--font-body);background:var(--color-bg-page);color:var(--color-text-1);font-size:14px;line-height:22px}
+.wrap{width:1440px;margin:0 auto;padding:0 40px}
+a{color:var(--color-primary);text-decoration:none}
+a:hover{text-decoration:none;background-image:linear-gradient(0deg,#4E97E7,#4E97E7);background-size:100% 1px;background-position:0 100%;background-repeat:no-repeat}
+button{font-family:inherit;font-size:13px}
+input[type="checkbox"]{accent-color:var(--color-primary)}
+button,a,.ctab,.stab,.ov-suite,.fdd-btn,.pg-btn,.card,.cal-cell,.cal-ev-list li{transition:background-color var(--duration-s) var(--easing-standard),border-color var(--duration-s) var(--easing-standard),color var(--duration-s) var(--easing-standard)}
+.note{color:var(--color-text-4);font-size:12px;line-height:18px;font-weight:normal}
+.gray{color:var(--color-text-4);font-size:12px;line-height:18px}
+/* Chip/标签（规范 §6.4）：同族色 10% 底 + 25% 描边 + 4px 圆角 */
+.tag{display:inline-block;background:rgba(9,105,218,.1);color:var(--color-primary);border:1px solid rgba(9,105,218,.25);font-size:12px;line-height:18px;padding:0 10px;border-radius:var(--radius-control);margin-right:6px;vertical-align:2px}
+.tag.ghost{background:rgba(0,0,0,.04);color:var(--color-text-3);border:1px solid var(--color-border)}
+/* 按钮公式（规范 §6.1/§9.4）：主=品牌蓝实底 8px 圆角；次=同尺寸描边；图标=32×32 */
+.btn{background:var(--color-primary);color:#fff;border:1px solid var(--color-primary);height:40px;padding:8px 24px;cursor:pointer;border-radius:var(--radius-card);font-size:16px;line-height:24px}
+.btn:hover{background:var(--color-primary-hover);border-color:var(--color-primary-hover)}
+.btn:active{background:var(--color-primary-active);border-color:var(--color-primary-active)}
+.btn.ghost{background:transparent;color:var(--color-text-2);border:1px solid var(--color-border-control)}
+.btn.ghost:hover{background:var(--color-bg-section);color:var(--color-text-1)}
+.btn.icon{width:32px;height:32px;padding:0;font-size:15px;line-height:1;border-radius:var(--radius-control)}
+.tbl .btn,.ov-row .btn{height:32px;padding:4px 14px;font-size:13px;line-height:22px}
+.page{display:none;padding-bottom:64px}
+.page.show{display:block}
+/* 楼层卡片（规范 §9.3）：8px 圆角 + 1px 边框 + 无阴影；白 ↔ #F6F8FA 交替分区（§5） */
+.floor{background:var(--color-bg-card);border:1px solid var(--color-border);border-radius:var(--radius-card);margin-top:24px;padding:24px 28px}
+.page .wrap>.floor:nth-child(even){background:var(--color-bg-section)}
+.floor-h{display:flex;align-items:center;justify-content:space-between;gap:16px;border-bottom:1px solid var(--color-border);padding-bottom:12px;margin-bottom:18px;flex-wrap:wrap}
+.floor-h h2{font-size:17px}
+/* 主楼层标题：代码注释风 "// " 红色等宽前缀（规范 §1/§9.5 品牌记忆点，仅此一类场景用红） */
+.floor>.floor-h>h2{font-size:24px;line-height:32px;font-weight:700}
+.floor>.floor-h>h2::before{content:"// ";color:var(--color-accent-red);font-family:var(--font-code);font-weight:700}
+.link-a{color:var(--color-primary);font-size:14px;white-space:nowrap}
+ul.nlist{list-style:none}
+ul.nlist li{display:flex;justify-content:space-between;gap:12px;padding:9px 0;border-bottom:1px solid var(--color-border)}
+ul.nlist li:last-child{border-bottom:none}
+ul.nlist li .t{font-size:14px}
+ul.nlist .t{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:520px}
+.d2{display:grid;grid-template-columns:1fr 1fr;gap:32px}
+
+/* ===== 原型页签（原型切换条，GitHub Dark 同系色，切换六个页面） ===== */
+.proto-tabs{background:#0D1117;padding:8px 0;position:sticky;top:0;z-index:99;border-bottom:1px solid rgba(255,255,255,.15)}
+.proto-tabs .wrap{display:flex;gap:8px;align-items:center}
+.proto-tabs button{background:#21262D;color:rgba(255,255,255,.8);border:1px solid rgba(255,255,255,.15);padding:6px 16px;cursor:pointer;font-size:13px;border-radius:var(--radius-control)}
+.proto-tabs button:hover{background:#30363d;color:#fff}
+.proto-tabs button.active{background:var(--color-primary);border-color:var(--color-primary);color:#fff}
+.proto-tabs .title{color:rgba(255,255,255,.4);font-size:12px;margin-right:12px;white-space:nowrap;font-family:var(--font-code)}
+
+/* ===== 站点导航（规范 §6.3：72px 高固定；14px 导航项 60% 文字，悬停/激活品牌蓝 + 2px 蓝下划线） ===== */
+header.site{background:var(--color-bg-page);border-bottom:1px solid var(--color-border)}
+header.site .wrap{display:flex;align-items:center;min-height:72px}
+.logo{font-size:18px;font-weight:700;margin-right:56px;white-space:nowrap}
+.logo .block{display:inline-block;width:22px;height:22px;background:var(--color-primary);border-radius:var(--radius-control);vertical-align:-4px;margin-right:8px}
+nav.main{display:flex;align-items:center;flex:1;gap:10px}
+.top-item{position:relative}
+.top-item>.top-btn{background:none;border:none;padding:10px 18px;font-size:14px;cursor:pointer;color:var(--color-text-3);display:flex;align-items:center}
+.top-item>.top-btn:hover{color:var(--color-primary)}
+.top-item.sel>.top-btn{font-weight:600;color:var(--color-primary);border-bottom:2px solid var(--color-primary)}
+.dd{display:none;position:absolute;top:100%;left:0;background:var(--color-bg-card);border:1px solid var(--color-border-control);min-width:180px;z-index:60;box-shadow:var(--shadow-1);border-radius:var(--radius-card);overflow:hidden}
+.top-item.open .dd{display:block}
+.dd a{display:block;padding:10px 18px;font-size:14px;color:var(--color-text-2)}
+.dd a:hover{background:var(--color-primary-bg);color:var(--color-primary);background-image:none}
+.dd a.on{font-weight:600;color:var(--color-primary)}
+.site-tag{color:var(--color-text-4);font-size:12px}
+
+/* ===== 通用表格 ===== */
+.tbl{width:100%;border-collapse:collapse;font-size:13px}
+.tbl th,.tbl td{border:1px solid var(--color-border);padding:8px 10px;text-align:left;vertical-align:middle}
+.tbl th{background:var(--color-bg-section);font-weight:600;white-space:nowrap;color:var(--color-text-2)}
+.tbl tbody tr:nth-child(even){background:var(--color-bg-section)}
+.tbl tbody tr:hover{background:var(--color-primary-bg)}
+th.sor{cursor:pointer;user-select:none}
+.score-link{color:var(--color-primary);text-decoration:underline;cursor:pointer}
+
+/* ===== 总览分析表（PRD-005.2）：横向条形行式（v0.7 确认）；进度条按规范 §6.6 描边轨道 + 全圆角细条 ===== */
+.ov-head{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+.ov-suites{display:flex;gap:6px;margin-left:auto;flex-wrap:wrap}
+.ov-suite{background:var(--color-bg-control);border:1px solid transparent;padding:4px 14px;cursor:pointer;font-size:12px;border-radius:var(--radius-pill);color:var(--color-text-2)}
+.ov-suite:hover{color:var(--color-text-1)}
+.ov-suite.active{background:var(--color-primary);color:#fff}
+.ov-count{background:var(--color-primary);color:#fff;font-size:13px;padding:4px 12px;border-radius:var(--radius-pill);white-space:nowrap}
+.ov-colhead,.ov-row{display:grid;grid-template-columns:36px 100px 170px 250px 64px minmax(120px,1fr) 72px;gap:10px;align-items:center}
+.ov-colhead{font-size:13px;font-weight:600;background:var(--color-bg-section);border:1px solid var(--color-border);padding:8px 10px;border-radius:var(--radius-card) var(--radius-card) 0 0;color:var(--color-text-2)}
+.ov-row{border:1px solid var(--color-border);border-top:none;padding:8px 10px;font-size:13px;background:var(--color-bg-card)}
+.ov-row:hover{background:var(--color-primary-bg)}
+.ov-vendor{text-align:right}
+.ov-sub{color:var(--color-text-4)}
+/* 条形轨道：透明底 + 1px 描边 + 全圆角（规范 §6.6） */
+.ov-track{display:block;background:transparent;border:1px solid var(--color-border);border-radius:100px;height:14px}
+.ov-bar{display:block;height:10px;margin:1px;background:var(--color-primary);cursor:pointer;border-radius:100px}
+.ov-score{text-align:right}
+.sc{font-variant-numeric:tabular-nums;white-space:nowrap}
+.hc{font-weight:600;font-size:14px;margin-bottom:4px}
+.sep{border-top:1px solid rgba(255,255,255,.2);margin:8px 0}
+.dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px;vertical-align:1px}
+
+/* ===== 筛选器（PRD-005.2：CPUBench 五个多选下拉，下拉内搜索，v0.7 恢复） ===== */
+.filters{display:flex;gap:12px;flex-wrap:wrap;align-items:flex-start;margin-bottom:14px}
+.fdd{position:relative}
+.fdd-btn{background:var(--color-bg-card);border:1px solid var(--color-border-control);padding:7px 14px;cursor:pointer;font-size:13px;display:flex;align-items:center;gap:8px;border-radius:var(--radius-card);color:var(--color-text-2)}
+.fdd-btn:hover{background:var(--color-bg-section);color:var(--color-text-1)}
+.fdd-btn::after{content:"▾";font-size:11px;color:var(--color-text-4)}
+.fdd-panel{display:none;position:absolute;top:calc(100% + 4px);left:0;background:var(--color-bg-card);border:1px solid var(--color-border-control);box-shadow:var(--shadow-1);padding:10px 12px;z-index:50;min-width:240px;max-height:264px;overflow:auto;border-radius:var(--radius-card)}
+.fdd.open .fdd-panel{display:block}
+.fdd-panel label{display:flex;align-items:center;gap:6px;padding:4px 0;font-size:13px;cursor:pointer;white-space:nowrap;color:var(--color-text-2)}
+.fdd-panel label:hover{color:var(--color-text-1)}
+.fdd-clear{margin-top:8px;font-size:12px;background:none;border:none;color:var(--color-primary);cursor:pointer;padding:0}
+.fdd-clear:hover{background-image:linear-gradient(0deg,#4E97E7,#4E97E7);background-size:100% 1px;background-position:0 100%;background-repeat:no-repeat}
+/* PRD-005.2 交互：下拉内搜索过滤选项（v0.7 恢复）；触发按钮"已选 n 项"计数 */
+.ov-fsearch{width:100%;padding:6px 8px;border:1px solid var(--color-border-control);font-size:13px;font-family:inherit;margin-bottom:8px;border-radius:var(--radius-control);outline:none;background:var(--color-bg-card);color:var(--color-text-1)}
+.ov-fsearch:focus{border-color:var(--color-primary)}
+.ov-fcount{margin-left:4px;font-weight:600;color:var(--color-primary)}
+
+/* ===== 对比分析区（PRD-005.3 / PRD-006.3） ===== */
+.ctabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px}
+.ctab{background:var(--color-bg-card);border:1px solid var(--color-border-control);padding:7px 18px;cursor:pointer;font-size:13px;border-radius:var(--radius-card);color:var(--color-text-2)}
+.ctab:hover{color:var(--color-text-1);border-color:var(--color-text-4)}
+.ctab.active{background:var(--color-primary);color:#fff;border-color:var(--color-primary)}
+.stabs{display:flex;gap:6px;flex-wrap:wrap}
+.stab{background:var(--color-bg-control);border:1px solid transparent;padding:4px 14px;cursor:pointer;font-size:12px;border-radius:var(--radius-pill);color:var(--color-text-2)}
+.stab:hover{color:var(--color-text-1)}
+.stab.active{background:var(--color-primary);color:#fff}
+.warn{color:var(--color-text-2);background:var(--color-bg-control);border:1px solid var(--color-border-control);padding:8px 12px;margin:10px 0 0;font-size:13px;border-radius:var(--radius-card)}
+.legend{display:flex;gap:18px;flex-wrap:wrap;font-size:12px;margin:12px 0 4px;align-items:center}
+.crow{display:flex;align-items:center;gap:10px;padding:6px 0}
+.clab{width:250px;text-align:right;font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:none}
+.clab .v{color:var(--color-text-4);font-size:12px;margin-left:6px}
+.ctrack{flex:1;background:transparent;border:1px solid var(--color-border);border-radius:100px;height:16px}
+.cbar{height:12px;margin:1px;background:var(--color-primary);cursor:pointer;border-radius:100px}
+.cscore{width:64px;font-size:13px;font-variant-numeric:tabular-nums;flex:none}
+#cmp1,#cmp2,#cmp3,#cmp4{border:1px dashed var(--color-border-control);padding:18px;margin-top:12px;border-radius:var(--radius-card)}
+/* 单项得分分组竖柱（④） */
+.vgroups{display:flex;gap:10px;align-items:flex-end;padding:8px 4px 0}
+.vgroup{flex:1;min-width:0;display:flex;flex-direction:column;align-items:center}
+.vbars{display:flex;gap:2px;align-items:flex-end;height:210px}
+.vbar{width:10px;cursor:pointer;border-radius:2px 2px 0 0}
+.vname{font-size:11px;color:var(--color-text-3);margin-top:6px;white-space:nowrap}
+
+/* ===== 翻页器 ===== */
+.pager{display:flex;gap:6px;margin-top:14px;align-items:center;flex-wrap:wrap}
+.pg-btn{min-width:32px;padding:5px 10px;border:1px solid var(--color-border-control);background:var(--color-bg-card);cursor:pointer;font-size:13px;border-radius:var(--radius-control);color:var(--color-text-2)}
+.pg-btn:hover{border-color:var(--color-primary);color:var(--color-primary)}
+.pg-btn.active{background:var(--color-primary);color:#fff;border-color:var(--color-primary)}
+.pg-btn[disabled]{color:var(--color-text-4);border-color:var(--color-border);cursor:not-allowed;background:var(--color-bg-section)}
+.pg-note{color:var(--color-text-4);font-size:12px;margin-left:8px}
+
+/* ===== 弹层 ===== */
+.modal{display:none;position:fixed;inset:0;background:rgba(13,17,23,.5);z-index:200;align-items:flex-start;justify-content:center;padding:40px 0}
+.modal.open{display:flex}
+.modal-box{background:var(--color-bg-card);width:920px;max-width:94vw;max-height:80vh;overflow:auto;border:1px solid var(--color-border-control);border-radius:var(--radius-card);box-shadow:var(--shadow-2)}
+.modal-head{display:flex;justify-content:space-between;align-items:flex-start;padding:20px 24px;border-bottom:1px solid var(--color-border);position:sticky;top:0;background:var(--color-bg-card);z-index:2}
+.mclose{background:none;border:1px solid var(--color-border-control);color:var(--color-text-2);font-size:16px;line-height:1;cursor:pointer;padding:2px 10px;border-radius:var(--radius-control)}
+.mclose:hover{background:var(--color-bg-section);color:var(--color-text-1)}
+.msec{padding:16px 24px;border-bottom:1px solid var(--color-border)}
+.msec h3{font-size:14px;margin-bottom:10px;font-weight:600}
+.mnote{color:var(--color-text-4);font-size:12px;font-weight:normal;margin-left:8px}
+.sc4{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+.sc3{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.scard{border:1px solid var(--color-border);padding:12px 14px;background:var(--color-bg-card);border-radius:var(--radius-card)}
+.scard .nm{font-size:13px;display:flex;align-items:center;color:var(--color-text-2)}
+.scard .val{font-size:24px;font-weight:600;margin:4px 0;font-variant-numeric:tabular-nums}
+.scard .sub{font-size:12px;color:var(--color-text-4)}
+.pt-row{background:var(--color-bg-section);border:1px solid var(--color-border);padding:8px 14px;font-size:13px;border-radius:var(--radius-control)}
+.kv td:first-child{width:230px;color:var(--color-text-3);background:var(--color-bg-section);white-space:nowrap}
+.lang-grid{display:grid;grid-template-columns:210px 1fr;border:1px solid var(--color-border);margin-bottom:10px;border-radius:var(--radius-control);overflow:hidden}
+.lang-grid .lname{padding:10px 14px;background:var(--color-bg-section);border-right:1px solid var(--color-border)}
+.lang-grid .lname b{display:block;margin-bottom:4px}
+.lang-grid pre{margin:0;padding:10px 14px;overflow:auto}
+.lang-grid code{font-family:var(--font-code);font-size:12px;color:var(--color-text-1);white-space:pre}
+
+/* ===== 活动日历组件（规范 §6.5：日期格品牌浅蓝底 4px 圆角 72px 高；事件纯色圆点） ===== */
+.cal-top{display:flex;align-items:center;gap:24px;flex-wrap:wrap;margin-bottom:16px}
+.cal-month{display:flex;align-items:center;gap:10px;font-size:16px;font-weight:600}
+.cal-month .m-label{min-width:132px;text-align:center}
+.cal-latest{color:var(--color-text-3);font-size:13px}
+.cal-filter{display:flex;gap:6px;margin-left:auto;flex-wrap:wrap}
+.cal-body{display:grid;grid-template-columns:1fr 360px;gap:24px;align-items:start}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
+.cal-cell{min-height:72px;background:var(--color-primary-bg);border-radius:var(--radius-control);padding:6px 8px;font-size:13px}
+.cal-cell.hd{min-height:34px;background:var(--color-bg-control);text-align:center;font-weight:600;padding:6px 0;color:var(--color-text-2)}
+.cal-cell.other{color:var(--color-text-4);background:var(--color-bg-section)}
+.cal-cell.today{box-shadow:inset 0 0 0 2px var(--color-primary);font-weight:600}
+.cal-cell.has{cursor:pointer}
+.cal-cell.has:hover{background:#C5DDFC}
+.cal-cell.selday{background:#C5DDFC;box-shadow:inset 0 0 0 1px var(--color-primary)}
+.cal-dots{margin-top:6px;display:flex;gap:4px;flex-wrap:wrap}
+.cal-dot{width:7px;height:7px;border-radius:50%;display:inline-block}
+.cal-ev-list{list-style:none;margin-bottom:10px}
+.cal-ev-list li{padding:8px 10px;border:1px solid var(--color-border);margin-bottom:6px;cursor:pointer;display:flex;justify-content:space-between;gap:8px;font-size:13px;border-radius:var(--radius-control);background:var(--color-bg-card)}
+.cal-ev-list li:hover{border-color:var(--color-primary)}
+.cal-ev-list li.on{border:1px solid var(--color-primary);background:var(--color-primary-bg);font-weight:600}
+.cal-panel{border:1px solid var(--color-border);padding:16px 18px;background:var(--color-bg-card);border-radius:var(--radius-card)}
+.cal-panel h4{font-size:15px}
+.cal-panel .meta{color:var(--color-text-3);font-size:13px;margin-top:6px}
+.cal-panel details{margin-top:12px;border-top:1px solid var(--color-border);padding-top:8px}
+.cal-panel summary{cursor:pointer;font-size:13px;color:var(--color-primary)}
+.cal-panel details .kv td:first-child{width:110px}
+.cal-panel .none{color:var(--color-text-4);font-size:13px}
+
+/* ===== 资讯/活动卡片（规范 §6.2：圆角 8px + 1px 边框 + 无投影；卡头三色浅渐变） ===== */
+.cards{display:grid;grid-template-columns:repeat(3,1fr);gap:20px}
+.card{background:var(--color-bg-card);border:1px solid var(--color-border);display:flex;flex-direction:column;border-radius:var(--radius-card);overflow:hidden}
+.card:hover{border-color:var(--color-border-control);box-shadow:var(--shadow-1)}
+.cover{height:150px;background:linear-gradient(90deg,#F3F7FD,#FAFCFE);display:flex;align-items:center;justify-content:center;color:var(--color-text-4);font-size:12px;text-align:center;padding:10px}
+.card-b{padding:14px 16px;display:flex;flex-direction:column;gap:8px;flex:1}
+.card-t{font-size:14px;font-weight:600;line-height:22px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;min-height:42px}
+.card-sum{font-size:12px;color:var(--color-text-3);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.card-meta{display:flex;justify-content:space-between;font-size:12px;color:var(--color-text-4);margin-top:auto}
+
+/* ===== 页脚（白底 + 1px 分隔线，工程师美学克制收尾） ===== */
+footer.site{background:var(--color-bg-section);color:var(--color-text-4);text-align:center;padding:22px 0;font-size:12px;margin-top:40px;border-top:1px solid var(--color-border)}
+#tooltip{position:absolute;z-index:300;display:none;background:#161B22;color:rgba(255,255,255,.85);padding:10px 14px;font-size:12px;line-height:1.9;width:280px;border:1px solid rgba(255,255,255,.15);border-radius:var(--radius-card);box-shadow:var(--shadow-2);pointer-events:none}
+#tooltip .hc-sub{color:rgba(255,255,255,.6)}
+#tooltip .sep{border-top:1px solid rgba(255,255,255,.15)}
+
+/* ===== 统计卡（硬件信息卡式：左 2px 竖色条 box-shadow 实现，蓝 #0869DA / 橙 #CE5907 区分类别） ===== */
+.scard.bar-b,.scard.bar-o{border:none;border-radius:0;background:transparent;padding:10px 16px}
+.scard.bar-b{box-shadow:-2px 0 0 0 #0869DA}
+.scard.bar-o{box-shadow:-2px 0 0 0 #CE5907}
+.scard.bar-b .val{color:#0869DA}
+.scard.bar-o .val{color:#CE5907}
+
+/* ===== 活动日历（参照 hifloat活动日历.jpg）：白卡容器 + 视图切换 pill + 浅蓝日期格 + 下划线类型筛选 + 右栏事件卡 ===== */
+.cal-view{display:inline-flex;background:var(--color-bg-control);border-radius:var(--radius-pill);padding:3px;margin-left:auto}
+.cal-view button{background:transparent;border:none;color:var(--color-text-2);font-size:13px;padding:6px 18px;cursor:pointer;border-radius:var(--radius-pill)}
+.cal-view button.active{background:var(--color-bg-card);color:var(--color-primary);font-weight:600;box-shadow:0 1px 2px rgba(0,0,0,.06)}
+.cal-shell{background:var(--color-bg-card);border:1px solid var(--color-border);border-radius:var(--radius-card);padding:20px 24px}
+.cal-filter .ctab{background:none;border:none;padding:6px 14px;border-radius:0;color:var(--color-text-2);border-bottom:2px solid transparent}
+.cal-filter .ctab:hover{color:var(--color-primary);border-color:transparent}
+.cal-filter .ctab.active{background:none;color:var(--color-primary);border-bottom:2px solid var(--color-primary);font-weight:600}
+.cal-grid{gap:8px}
+.cal-cell{min-height:64px;background:#DCE9FB;border-radius:4px;padding:8px 10px}
+.cal-cell.hd{min-height:30px;background:transparent;color:var(--color-text-3);font-weight:400;padding:4px 10px}
+.cal-cell.other{background:#E7EDF4;color:var(--color-text-4)}
+.cal-cell.today{box-shadow:inset 0 0 0 1px var(--color-primary)}
+.cal-cell.has:hover{background:#C5DDFC}
+.cal-cell.selday{background:#C5DDFC;box-shadow:inset 0 0 0 1px var(--color-primary)}
+.cal-dot{width:14px;height:14px;position:relative}
+.cal-dot::after{content:"";position:absolute;inset:4px;background:#fff;border-radius:50%}
+.cal-ev-list li{border:none;border-radius:8px;background:transparent;padding:10px 12px;border-bottom:none;font-weight:600;color:var(--color-text-1)}
+.cal-ev-list li:hover{background:var(--color-bg-section)}
+.cal-ev-list li.on{background:var(--color-bg-section);border:none}
+.cal-ev-list li .tag.ghost{border:none;background:transparent;color:var(--color-text-4);font-weight:400}
+.cal-panel{border:none;background:var(--color-bg-section);border-radius:8px;padding:16px 18px}
+.cal-panel h4{font-size:16px}
+.cal-panel .kv td,.cal-panel .kv td:first-child{background:transparent;border-color:transparent}
+.cal-listbox{margin-top:4px}
+.cal-listbox h5{font-size:14px;font-weight:600;color:var(--color-text-2);margin:14px 0 6px}
+.cal-listbox ul{list-style:none}
+.cal-listbox li{display:flex;gap:12px;padding:8px 4px;border-bottom:1px solid var(--color-border);font-size:13px}
+.cal-listbox li .d{color:var(--color-text-4);flex:none;font-variant-numeric:tabular-nums}
+.cal-listbox li a{color:var(--color-text-1)}
+.cal-listbox li a:hover{color:var(--color-primary)}
+.cal-listbox .none{color:var(--color-text-4);font-size:13px;padding:8px 4px}
+
+/* ===== 页头 Hero（参照 HiFloat news/activity 页：大标题 + 副标题） ===== */
+.hero{padding:40px 0 24px}
+.hero h1{font-size:32px;line-height:44px;font-weight:700}
+.hero p{color:var(--color-text-3);font-size:14px;margin-top:6px}
+.hero .chips{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
+.hero .chips span{background:var(--color-bg-section);border:1px solid var(--color-border);border-radius:var(--radius-control);padding:2px 12px;font-size:12px;color:var(--color-text-2)}
+
+/* ===== 资讯/活动列表页（参照 HiFloat /zh/news：左筛选栏 + 右列表行） ===== */
+.news-layout{display:grid;grid-template-columns:260px 1fr;gap:32px;align-items:start;padding-bottom:24px}
+.news-side{position:sticky;top:96px}
+.news-side .nsearch{width:100%;padding:7px 10px;border:1px solid var(--color-border-control);border-radius:var(--radius-control);font-size:13px;font-family:inherit;outline:none;background:var(--color-bg-card);color:var(--color-text-1);margin-bottom:18px}
+.news-side .nsearch:focus{border-color:var(--color-primary)}
+.news-side h3{font-size:14px;font-weight:600;margin:0 0 8px}
+.news-side .fchips{display:flex;flex-direction:column;gap:2px;margin-bottom:18px}
+.news-side .fchip{background:none;border:none;text-align:left;font-size:13px;color:var(--color-text-2);padding:5px 8px;cursor:pointer;border-radius:var(--radius-control)}
+.news-side .fchip:hover{background:var(--color-bg-section);color:var(--color-text-1)}
+.news-side .fchip.active{background:var(--color-primary-bg);color:var(--color-primary);font-weight:600}
+.news-side .fchip .n{color:var(--color-text-4);margin-left:6px;font-weight:400}
+.nrow{display:block;padding:20px 0;border-bottom:1px solid var(--color-border)}
+.nrow:first-child{padding-top:4px}
+.nrow .tags{margin-bottom:8px}
+.nrow h2{font-size:18px;line-height:26px;font-weight:600;color:var(--color-text-1);margin-bottom:8px}
+.nrow:hover h2{color:var(--color-primary)}
+.nrow .sum{color:var(--color-text-3);font-size:13px;line-height:22px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.nrow .dt{color:var(--color-text-4);font-size:12px;margin-top:10px}
+
+/* ===== 四套件分组对比图（参照 柱状图.jpg：厂商/型号/CPU 三列右对齐标签 + 蓝色圆角横条 + 右侧分值） ===== */
+.bzrow{display:grid;grid-template-columns:70px 170px 250px minmax(120px,1fr) 64px;gap:12px;align-items:center;padding:7px 0}
+.bzven{color:var(--color-text-3);font-size:12px;text-align:right;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bzmod{font-size:13px;color:var(--color-text-1);text-align:right;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bzcpu{color:var(--color-text-4);font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bztrack{display:block;height:14px}
+.bzbar{display:block;height:14px;background:#3B7CE0;border-radius:3px;cursor:pointer}
+.bzscore{font-size:13px;font-weight:600;font-variant-numeric:tabular-nums}
+.tbl .btn.ghost{white-space:nowrap;height:28px;padding:2px 10px;font-size:12px}
+</style>
+</head>
+<body>
+
+<!-- ===== 原型页签（深色 sticky 条）：切换 6 个页面（首页/CPUBench/AISBench/ClusterBench/资讯/活动），JS go() + 高亮联动 ===== -->
+<div class="proto-tabs" role="navigation" aria-label="原型页面切换">
+  <div class="wrap">
+    <span class="title">定稿 · HiFloat 设计规范版 · PRD v0.11（2026-10-28，亮色主题，功能与方案A 一致）</span>
+    <button data-page="home" class="active">首页</button>
+    <button data-page="cpu">CPUBench</button>
+    <button data-page="ais">AISBench</button>
+    <button data-page="cluster">ClusterBench</button>
+    <button data-page="news">资讯</button>
+    <button data-page="activity">活动</button>
+  </div>
+</div>
+
+<!-- ===== 站点导航（PRD 1.3）：一级=首页/工具/动态；工具、动态点击展开二级下拉（JS）：工具→CPUBench/AISBench/ClusterBench，动态→资讯/活动；二级项跳对应页签；当前页一级项选中态。已确认取消：无登录、无数据上传按钮（PRD-001/002 取消） ===== -->
+<header class="site">
+  <div class="wrap">
+    <div class="logo"><span class="block" aria-hidden="true"></span>Benchmark 平台</div>
+    <nav class="main" aria-label="站点导航">
+      <div class="top-item" id="nav-home">
+        <button class="top-btn" data-go="home">首页</button>
+      </div>
+      <div class="top-item" id="nav-tool">
+        <button class="top-btn" aria-haspopup="true" aria-expanded="false">工具 <span aria-hidden="true" style="font-size:10px;margin-left:4px">▾</span></button>
+        <div class="dd">
+          <a data-go="cpu" href="javascript:void(0)">CPUBench</a>
+          <a data-go="ais" href="javascript:void(0)">AISBench</a>
+          <a data-go="cluster" href="javascript:void(0)">ClusterBench</a>
+        </div>
+      </div>
+      <div class="top-item" id="nav-dyn">
+        <button class="top-btn" aria-haspopup="true" aria-expanded="false">动态 <span aria-hidden="true" style="font-size:10px;margin-left:4px">▾</span></button>
+        <div class="dd">
+          <a data-go="news" href="javascript:void(0)">资讯</a>
+          <a data-go="activity" href="javascript:void(0)">活动</a>
+        </div>
+      </div>
+    </nav>
+    <span class="site-tag">公开数据浏览 · 本期无登录 / 无上传</span>
+  </div>
+</header>
+
+<main>
+
+<!-- ==================== 首页（PRD-008）：楼层顺序固定 = 1 资讯概览 → 2 活动日历 → 3 测评工具 ==================== -->
+<section class="page" id="page-home">
+  <div class="wrap">
+
+    <!-- 首页楼层1（PRD-008 楼层1 / PRD-004 同构）：资讯概览 = 新闻中心列表（4条+日期）+ 通知公告列表（3条+日期）双栏，各带"查看全部→"跳资讯页签。交互：点击"查看全部→"调用 go('news') -->
+    <div class="floor">
+      <div class="floor-h"><h2>资讯概览</h2><span class="note">新闻中心 + 通知公告双栏</span></div>
+      <div class="d2">
+        <div>
+          <div class="floor-h" style="margin-bottom:8px"><h2 style="font-size:15px">新闻中心</h2><a class="link-a" href="javascript:void(0)" data-go="news">查看全部 →</a></div>
+          <ul class="nlist">
+            <li><span class="t">Benchmark 平台 CPUBench v1.3 测评工具正式发布</span><span class="note">2026-10-24</span></li>
+            <li><span class="t">新一批整机测评数据上线：新增 3 家厂商 12 个整机型号</span><span class="note">2026-10-20</span></li>
+            <li><span class="t">AISBench 推理性能测评工具完成适配升级，支持 FP8 精度</span><span class="note">2026-10-15</span></li>
+            <li><span class="t">某云计算中心完成 R4950 G5 整机 Benchmark 复测并入库</span><span class="note">2026-10-09</span></li>
+          </ul>
+        </div>
+        <div>
+          <div class="floor-h" style="margin-bottom:8px"><h2 style="font-size:15px">通知公告</h2><a class="link-a" href="javascript:void(0)" data-go="news">查看全部 →</a></div>
+          <ul class="nlist">
+            <li><span class="t">关于平台数据对比采用 Typical 分数的说明</span><span class="note">2026-10-22</span></li>
+            <li><span class="t">测评数据提交通道维护公告（10 月 30 日 22:00-24:00）</span><span class="note">2026-10-18</span></li>
+            <li><span class="t">关于征集 ClusterBench 集群测评需求的通知</span><span class="note">2026-10-12</span></li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- 首页楼层2（PRD-008 楼层2）：活动日历（与活动页 tab1 同一组件，样式参照 活动日历.jpg）。交互：月份切换 JS 换文本与月历；类型筛选按钮组 JS 切 active 并过滤事件；点击事件日 → 右侧详情面板更新；明细 <details> 可展开七行。结构详见 cal-home 内部注释 -->
+    <div class="floor">
+      <div class="floor-h"><h2>活动日历</h2><span class="cal-view" role="group" aria-label="日历视图切换"><button class="active" data-cv2="cal">日历视图</button><button data-cv2="list">列表视图</button></span></div>
+      <div class="cal-shell">
+      <div class="cal" id="cal-home">
+        <!-- 顶栏：月份切换（< 2026 年 10 月 >，JS 切月）+ 最新日程 + 类型筛选按钮组（全部/会议/活动/峰会，JS 切 active） -->
+        <div class="cal-top">
+          <div class="cal-month">
+            <button class="btn icon ghost cal-prev" aria-label="上一月">&lt;</button>
+            <span class="m-label">2026 年 10 月</span>
+            <button class="btn icon ghost cal-next" aria-label="下一月">&gt;</button>
+          </div>
+          <span class="cal-latest">最新日程：2026-10-28</span>
+          <div class="cal-filter" role="group" aria-label="事件类型筛选">
+            <button class="ctab active" data-ftype="全部">全部</button>
+            <button class="ctab" data-ftype="会议">会议</button>
+            <button class="ctab" data-ftype="活动">活动</button>
+            <button class="ctab" data-ftype="峰会">峰会</button>
+          </div>
+        </div>
+        <div class="cal-body">
+          <!-- 左：月历网格 7 列（日~六表头、邻月灰显、今日格描边高亮、事件日带小圆点标记、点击选中事件日） -->
+          <div>
+            <div class="cal-grid">
+              <div class="cal-cell hd">日</div><div class="cal-cell hd">一</div><div class="cal-cell hd">二</div><div class="cal-cell hd">三</div><div class="cal-cell hd">四</div><div class="cal-cell hd">五</div><div class="cal-cell hd odd">六</div>
+            </div>
+            <div class="cal-grid cal-days"></div>
+          </div>
+          <!-- 右：事件详情面板 = 当日事件列表 + 事件标题+类型标签、日期范围、SIG 组、"加入会议 >"链接、可展开明细（会议详情/发起人/会议时间/会议ID/会议平台/会议链接/会议纪要 七行） -->
+          <div>
+            <ul class="cal-ev-list"></ul>
+            <div class="cal-panel"></div>
+          </div>
+        </div>
+      </div>
+      <div class="cal-listbox" style="display:none"></div>
+      </div>
+    </div>
+
+    <!-- 首页楼层3（PRD-008 楼层3）：测评工具 = 3 工具卡（v0.9 起三卡均不再标"即将上线"，ClusterBench 已启用）：名称+一句数据元信息+进入按钮。交互：点击"进入工具"跳对应页签 -->
+    <div class="floor">
+      <div class="floor-h"><h2>测评工具</h2></div>
+      <div class="cards">
+        <div class="card">
+          <div class="card-b">
+            <div class="card-t" style="min-height:auto;-webkit-line-clamp:1">CPUBench</div>
+            <span class="gray">CPU 性能测评工具 · 累计 1,286 条测试记录 / 156 个整机型号</span>
+            <div><button class="btn" data-go="cpu">进入工具</button></div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-b">
+            <div class="card-t" style="min-height:auto;-webkit-line-clamp:1">AISBench</div>
+            <span class="gray">AI 推理性能测评工具 · 覆盖主流加速卡与大模型组合</span>
+            <div><button class="btn" data-go="ais">进入工具</button></div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-b">
+            <div class="card-t" style="min-height:auto;-webkit-line-clamp:1">ClusterBench</div>
+            <span class="gray">通算超节点测评工具 · 已收录 6 篇评测案例</span>
+            <div><button class="btn" data-go="cluster">进入工具</button></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- ==================== CPUBench 页（PRD-005）：六楼层顺序固定 = 1 简介与统计 → 2 筛选器+总览分析表 → 3 对比分析区 → 4 测试记录表 → 5 详情弹层 → 6 数据来源声明 ==================== -->
+<section class="page" id="page-cpu">
+  <div class="wrap">
+
+    <!-- CPUBench 楼层1（PRD-005.1）：工具名+简介段+「工具说明书」按钮（PDF 在线预览，demo alert）+下载按钮+代码仓链接+统计卡片 5 项一行（测试记录/整机厂商/整机型号/处理器型号/测试单位，大数字+标签）。交互：说明书/下载按钮 alert 占位 -->
+    <div class="floor">
+      <div class="floor-h">
+        <h2>CPUBench · CPU 性能测评工具</h2>
+        <div style="display:flex;gap:8px;align-items:center">
+          <button class="btn" onclick="alert('工具说明书：PDF 在线预览（正式版打开预览窗口）')">工具说明书</button>
+          <button class="btn ghost" onclick="alert('开始下载《CPUBench 工具说明书》PDF（demo 占位）')">下载</button>
+        </div>
+      </div>
+      <p style="margin-bottom:10px">CPUBench 是面向服务器整机的 CPU 性能测评工具，覆盖整型单核（IntSingle）、浮点单核（FloatSingle）、整型并发（IntConcurrent）、浮点并发（FloatConcurrent）四类测试套件，共 22 个单项基准程序（Int 套件 12 项 / Float 套件 10 项）。平台汇聚整机厂商提交的测评数据，提供总览分析、多记录对比与单条记录详情报告，供用户公开浏览与参考。</p>
+      <p class="gray">代码仓：<a href="https://gitee.com/bench_performance/cpubench" target="_blank" rel="noopener">https://gitee.com/bench_performance/cpubench</a></p>
+      <div class="sc4" style="grid-template-columns:repeat(5,1fr);margin-top:18px">
+        <div class="scard bar-b"><div class="val">1,286</div><div class="sub">测试记录</div></div>
+        <div class="scard bar-b"><div class="val">28</div><div class="sub">整机厂商</div></div>
+        <div class="scard bar-b"><div class="val">156</div><div class="sub">整机型号</div></div>
+        <div class="scard bar-o"><div class="val">64</div><div class="sub">处理器型号</div></div>
+        <div class="scard bar-o"><div class="val">42</div><div class="sub">测试单位</div></div>
+      </div>
+    </div>
+
+    <!-- CPUBench 楼层2（PRD-005.2）：筛选器 5 个多选下拉（测试单位/整机厂商/整机型号/处理器/架构）——交互：下拉内搜索过滤选项（v0.7 恢复）：每个筛选器=触发按钮（显示"已选 n 项"）+ 下拉面板（顶部搜索 input 实时过滤下方复选选项列表）+ 面板外点击关闭；多选+实时联动（正式版完整实现，demo 做勾选过滤行） -->
+    <!-- PRD-005.2 总览分析表：样式参照柱状图.jpg 横向条形行式，保留选择功能（v0.7） -->
+    <div class="floor">
+      <div class="floor-h"><h2>筛选器 + 总览分析表</h2><span class="note">筛选器均为多选、下拉内搜索（v0.7 恢复）；多选+实时联动（正式版实现）</span></div>
+      <div class="filters" id="cpuFilters">
+        <div class="fdd">
+          <button class="fdd-btn" data-name="测试单位" aria-haspopup="true" aria-expanded="false">测试单位</button>
+          <div class="fdd-panel" id="f-unit" aria-label="测试单位多选"></div>
+        </div>
+        <div class="fdd">
+          <button class="fdd-btn" data-name="整机厂商" aria-haspopup="true" aria-expanded="false">整机厂商</button>
+          <div class="fdd-panel" id="f-vendor" aria-label="整机厂商多选"></div>
+        </div>
+        <div class="fdd">
+          <button class="fdd-btn" data-name="整机型号" aria-haspopup="true" aria-expanded="false">整机型号</button>
+          <div class="fdd-panel" id="f-model" aria-label="整机型号多选"></div>
+        </div>
+        <div class="fdd">
+          <button class="fdd-btn" data-name="处理器" aria-haspopup="true" aria-expanded="false">处理器</button>
+          <div class="fdd-panel" id="f-cpu" aria-label="处理器多选"></div>
+        </div>
+        <div class="fdd">
+          <button class="fdd-btn" data-name="架构" aria-haspopup="true" aria-expanded="false">架构</button>
+          <div class="fdd-panel" id="f-arch" aria-label="架构多选"></div>
+        </div>
+      </div>
+      <!-- PRD-005.2 总览分析表：样式参照柱状图.jpg 横向条形行式，保留选择功能（v0.7） -->
+      <div class="ov-head">
+        <h3 style="font-size:15px">总览分析表</h3>
+        <div class="ov-suites" id="ovSuiteTabs" role="group" aria-label="总览分析表套件切换"></div>
+        <span class="ov-count" aria-label="已选行计数">已选 <span id="selCount">6</span>/6</span>
+      </div>
+      <div id="ovTable" aria-label="CPUBench 总览分析表（不分页）">
+        <div class="ov-colhead">
+          <span>选择</span><span class="ov-vendor">整机厂商</span><span>整机型号</span><span>处理器型号(核数-线程数)</span><span>架构</span><span id="ovBarCol">当前套件分数条</span><span class="ov-score">分数</span>
+        </div>
+        <div id="ovBody"></div>
+      </div>
+      <p class="note" style="margin-top:8px">总览分析表不分页，全量展示筛选结果；已选行作为下方对比分析区数据源（最多 6 行，默认勾选前 6 行）。</p>
+      <!-- 6 条上限规则（2.0 约束3）：满 6 行后再勾选阻断，内联文本提示（成因+处理建议） -->
+      <div id="cmpWarn" class="warn" style="display:none" role="alert"></div>
+    </div>
+
+    <!-- CPUBench 楼层3（PRD-005.3）：对比分析区 = 图表切换页签 4 个（JS 切换）+ 数据源说明行"数据源：总览分析表已选 6 行"。
+         ① 四类测试项分组对比：横向条形（右上四套件切换按钮），条形 hover 信息卡=型号粗体标题/厂商·处理器副行/分隔线/四套件色点+名称+分数四行；
+         ② 雷达图：内联 SVG 四轴（上 IntSingle 整型单核/右 FloatConcurrent 浮点并发/下 IntConcurrent 整型并发/左 FloatSingle 浮点单核）+6 个多边形（灰度描边）+图例 型号(厂商)，顶点 hover 信息卡同上；
+         ③ 相对基准倍数表：行=已选行，列=四套件倍数，首行标"基准"（点击型号切换基准为正式版能力）；
+         ④ 单项基准程序得分对比：分组竖柱（CSS flex），横轴子项按所选套件区分（Int 套件 12 项 / Float 套件 10 项，PRD v0.11），每组最多 6 根柱（灰度区分），右上套件页签，图例，柱 hover 信息卡同上 -->
+    <div class="floor">
+      <div class="floor-h"><h2>对比分析区</h2><span class="note" id="cmpSource">数据源：总览分析表已选 6 行</span></div>
+      <div class="ctabs" role="tablist" aria-label="对比分析图切换">
+        <button class="ctab active" data-cv="1">四类测试项分组对比</button>
+        <button class="ctab" data-cv="2">雷达图对比</button>
+        <button class="ctab" data-cv="3">相对基准倍数表</button>
+        <button class="ctab" data-cv="4">单项基准程序得分对比</button>
+      </div>
+      <div id="cmp1">
+        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+          <span class="gray">每行 = 一条已选记录；左标签为型号+厂商，右横条为当前套件分数（条长按分数比例）</span>
+          <div class="stabs" id="cmp1Tabs" role="group" aria-label="套件切换"></div>
+        </div>
+        <div id="cmp1Chart" style="margin-top:14px"></div>
+      </div>
+      <div id="cmp2" style="display:none">
+        <div class="gray" style="margin-bottom:8px">四轴：上=IntSingle 整型单核 / 右=FloatConcurrent 浮点并发 / 下=IntConcurrent 整型并发 / 左=FloatSingle 浮点单核；每个多边形 = 一条已选记录；顶点悬停查看信息卡</div>
+        <div style="display:flex;gap:24px;align-items:flex-start">
+          <div id="cmp2Chart"></div>
+          <div class="legend" id="cmp2Legend" style="flex-direction:column;align-items:flex-start;gap:8px"></div>
+        </div>
+      </div>
+      <div id="cmp3" style="display:none">
+        <p class="gray" style="margin-bottom:10px">以已选首行记录为基准（倍数 1.00×）；正式版支持点击型号列切换基准记录。</p>
+        <div id="cmp3Table"></div>
+      </div>
+      <div id="cmp4" style="display:none">
+        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+          <span class="gray">横轴 = 当前套件的单项基准程序（Int 套件 12 项 / Float 套件 10 项）；每组柱 = 已选记录（灰度区分）</span>
+          <div class="stabs" id="cmp4Tabs" role="group" aria-label="套件切换"></div>
+        </div>
+        <div id="cmp4Chart" style="margin-top:14px"></div>
+        <div class="legend" id="cmp4Legend"></div>
+      </div>
+    </div>
+
+    <!-- CPUBench 楼层4（PRD-005.4）：测试记录表（无对比列）：列=序号/测试单位/整机厂商/整机型号/处理器型号/四套件分数/查看；13 条数据每页 10 条+翻页器真实可用（上一页/1/2/下一页，当前页高亮，JS 切行显示）；可排序列头 ↕（正式版实现排序，注释说明）；四套件分数为下划线链接（alert('查看原始报告 PDF')）；"查看"打开详情弹层 -->
+    <div class="floor">
+      <div class="floor-h"><h2>测试记录表</h2><span class="note">每页 10 条 · 可排序列头 ↕（正式版实现）· 分数单击查看原始报告</span></div>
+      <table class="tbl" aria-label="CPUBench 测试记录表">
+        <thead>
+          <tr>
+            <th style="width:52px">序号</th>
+            <th class="sor">测试单位 <span aria-hidden="true">↕</span></th>
+            <th class="sor">整机厂商 <span aria-hidden="true">↕</span></th>
+            <th class="sor">整机型号 <span aria-hidden="true">↕</span></th>
+            <th class="sor">处理器型号 <span aria-hidden="true">↕</span></th>
+            <th class="sor">IntSingle <span aria-hidden="true">↕</span></th>
+            <th class="sor">FloatSingle <span aria-hidden="true">↕</span></th>
+            <th class="sor">IntConcurrent <span aria-hidden="true">↕</span></th>
+            <th class="sor">FloatConcurrent <span aria-hidden="true">↕</span></th>
+            <th style="width:64px">查看</th>
+          </tr>
+        </thead>
+        <tbody id="cpuRecBody"></tbody>
+      </table>
+      <div class="pager" id="cpuPager" aria-label="测试记录表翻页器"></div>
+    </div>
+
+    <!-- CPUBench 楼层5（PRD-005.5 / 2.2.1）：测试记录详情弹层 = 居中遮罩，max-height 80vh 滚动，× 与遮罩点击均可关闭。严格按九分区：头部（型号大标题+版本标签+产品标签+副行）→四分数卡→三派生卡→数据分区行→目录信息8行→硬件环境10行→报告信息4行→优化编译参数（6语言组）→各测试子项得分竖柱图。字段不得合并/增加/删除，内容由 JS 按记录填充 -->
+    <div class="modal" id="cpuModal" role="dialog" aria-modal="true" aria-label="测试记录详情">
+      <div class="modal-box">
+        <div class="modal-head">
+          <div>
+            <h2 id="cpuMTitle" style="font-size:20px;display:inline"></h2>
+            <span class="tag" style="margin-left:10px">v1.3 及之前</span><span class="tag ghost">服务器产品</span>
+            <div class="gray" id="cpuMSub" style="margin-top:4px"></div>
+          </div>
+          <button class="mclose" aria-label="关闭详情弹层">×</button>
+        </div>
+        <div class="msec"><div class="sc4" id="cpuMScore"></div></div>
+        <div class="msec"><div class="sc3" id="cpuMDerived"></div></div>
+        <div class="msec"><div class="pt-row" id="cpuMPart"></div></div>
+        <div class="msec"><h3>目录信息</h3><table class="tbl kv"><tbody id="cpuMFolder"></tbody></table></div>
+        <div class="msec"><h3>硬件环境</h3><table class="tbl kv"><tbody id="cpuMHw"></tbody></table></div>
+        <div class="msec"><h3>报告信息</h3><table class="tbl kv"><tbody id="cpuMReport"></tbody></table></div>
+        <div class="msec">
+          <h3>优化编译参数</h3>
+          <div id="cpuMLang"></div>
+          <div style="margin-top:10px"><span class="tag">编译器：GCC 10.3.1（C/C++）· JDK 11（Java）</span><span class="tag ghost">配置模板：CPUBench-v1.3 标准配置模板</span></div>
+        </div>
+        <div class="msec" style="border-bottom:none">
+          <h3>各测试子项得分</h3>
+          <div class="legend" id="cpuMLegend"></div>
+          <div id="cpuMBar"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CPUBench 楼层6（PRD-005.6）：数据来源声明（页尾，含"数据对比采用 Typical 分数"） -->
+    <div class="floor">
+      <div class="floor-h"><h2>数据来源声明</h2></div>
+      <p style="font-size:13px">本站展示的 CPUBench 测评数据均来自各整机厂商与测试单位（如某云计算中心、某高校超算中心、某运营商研究院等）按统一测试规范提交的原始结果，经平台复核后发布；结果目录时间取最晚 result 目录。数据对比采用 Typical 分数；不同版本、不同产品类别之间的分数不可直接比较。如需数据纠错或补充提交，请通过代码仓议题反馈。</p>
+    </div>
+
+  </div>
+</section>
+
+<!-- ==================== AISBench 页（PRD-006）：四楼层顺序固定 = 1 工具简介 → 2 筛选器 → 3 对比分析图 → 4 测试记录表（+详情弹层） ==================== -->
+<section class="page" id="page-ais">
+  <div class="wrap">
+
+    <!-- AISBench 楼层1（PRD-006.1）：工具名+简介+「工具说明书」按钮（PDF 预览+下载，demo alert）+代码仓链接（标注地址待提供） -->
+    <div class="floor">
+      <div class="floor-h">
+        <h2>AISBench · AI 推理性能测评工具</h2>
+        <div style="display:flex;gap:8px;align-items:center">
+          <button class="btn" onclick="alert('工具说明书：PDF 在线预览（正式版打开预览窗口）')">工具说明书</button>
+          <button class="btn ghost" onclick="alert('开始下载《AISBench 工具说明书》PDF（demo 占位）')">下载</button>
+        </div>
+      </div>
+      <p style="margin-bottom:10px">AISBench 是面向大模型推理场景的性能测评工具，围绕吞吐、交互性、首字时延（TTFT）与端到端时延（E2EL）等指标，对"芯片 + 推理框架 + 模型 + 精度 + 上下文长度"组合进行标准化测试。平台按筛选器组合驱动三个对比折线图，每条提交记录呈现为一条折线，不同并发数为线上节点。</p>
+      <p class="gray">代码仓：<a href="javascript:void(0)" onclick="alert('AISBench 开源代码仓地址待提供（PRD-006.1）')">开源代码仓链接（地址待提供）</a></p>
+    </div>
+
+    <!-- AISBench 楼层2（PRD-006.2）：筛选器 4 个 = 模型（单选下拉+下拉内搜索 input，默认 DeepSeek R1）；芯片类型（多选复选组默认全选）；上下文（单选下拉默认 1k/1k）；精度（多选复选组默认全选）。交互：任一筛选变化 → 折线图与命中条数"命中 N 条记录"联动更新（JS） -->
+    <div class="floor">
+      <div class="floor-h"><h2>筛选器</h2><span class="note" id="aisHit">命中 12 条记录</span></div>
+      <div class="filters" style="align-items:stretch">
+        <div class="fdd" id="aisModelDd">
+          <button class="fdd-btn" aria-haspopup="listbox" aria-expanded="false">模型：<b id="aisModelLabel">DeepSeek R1</b></button>
+          <div class="fdd-panel">
+            <label style="border-bottom:1px solid #eef0f2;padding-bottom:8px;margin-bottom:6px;display:block">
+              <input type="text" id="aisModelSearch" aria-label="在模型列表中搜索" placeholder="搜索模型（如 DeepSeek）" style="width:100%;padding:6px 8px;border:1px solid #9aa1a9;font-size:13px">
+            </label>
+            <div id="aisModelList" role="listbox" aria-label="模型单选列表"></div>
+          </div>
+        </div>
+        <div class="fdd" id="aisChipDd">
+          <button class="fdd-btn" aria-haspopup="true" aria-expanded="false">芯片类型（多选）</button>
+          <div class="fdd-panel" id="aisChipPanel" aria-label="芯片类型多选"></div>
+        </div>
+        <div class="fdd" id="aisCtxDd">
+          <button class="fdd-btn" aria-haspopup="true" aria-expanded="false">上下文：<b id="aisCtxLabel">1k/1k</b></button>
+          <div class="fdd-panel">
+            <label style="display:block">上下文长度（单选）
+              <select id="aisCtxSel" aria-label="上下文长度单选" style="width:100%;margin-top:6px;padding:6px;border:1px solid #9aa1a9;font-size:13px">
+                <option value="1k/1k" selected>1k/1k</option>
+                <option value="8k/8k">8k/8k</option>
+              </select>
+            </label>
+          </div>
+        </div>
+        <div class="fdd" id="aisPrecDd">
+          <button class="fdd-btn" aria-haspopup="true" aria-expanded="false">精度（多选）</button>
+          <div class="fdd-panel" id="aisPrecPanel" aria-label="数据精度多选"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- AISBench 楼层3（PRD-006.3）：图表页签 3 个（吞吐vs交互性 / 吞吐vsTTFT时延 / 吞吐vs端到端时延，JS 切换）；每图=内联 SVG 折线（每条=一条提交记录，折线数量不限：筛选命中多少条即展示多少条线）× 每线 4 节点（并发 1/8/16/32）；节点 hover 信息卡 6 字段：提交日期/横轴数值/纵轴数值/总芯片卡数/并发数/数据精度；图例=记录名。正式版：线可点击突出、节点可点击跳对应表格行 -->
+    <div class="floor">
+      <div class="floor-h"><h2>对比分析图</h2><span class="note">折线数量不限 · 节点悬停查看 6 字段信息卡 · 正式版：线可点击突出 / 节点点击跳表格</span></div>
+      <div class="ctabs" role="tablist" aria-label="AISBench 对比图切换">
+        <button class="ctab active" data-av="0">吞吐 vs 交互性</button>
+        <button class="ctab" data-av="1">吞吐 vs TTFT 时延</button>
+        <button class="ctab" data-av="2">吞吐 vs 端到端时延</button>
+      </div>
+      <div id="aisAxisNote" class="gray" style="margin:6px 0 10px"></div>
+      <div id="aisChart"></div>
+      <div class="legend" id="aisLegend"></div>
+    </div>
+
+    <!-- AISBench 楼层4（PRD-006.4）：测试记录表 列=厂商/整机系统/模型/提交日期/加速器/推理框架/精度/上下文长度/查看；12 条每页 10 条+翻页器真实可用；"查看"开详情弹层=表1 基础信息汇总三组（总览7行/硬件7行/软件5行）+表2 测试数据（10 指标行 × 并发 1/8/16/32 列） -->
+    <div class="floor">
+      <div class="floor-h"><h2>测试记录表</h2><span class="note">每页 10 条 · "查看"打开详细报告（两张表）</span></div>
+      <table class="tbl" aria-label="AISBench 测试记录表">
+        <thead>
+          <tr><th>厂商</th><th>整机系统</th><th>模型</th><th class="sor">提交日期 <span aria-hidden="true">↕</span></th><th>加速器</th><th>推理框架</th><th>精度</th><th>上下文长度</th><th style="width:64px">查看</th></tr>
+        </thead>
+        <tbody id="aisRecBody"></tbody>
+      </table>
+      <div class="pager" id="aisPager" aria-label="AISBench 记录表翻页器"></div>
+    </div>
+
+    <!-- AISBench 详情弹层：表1 基础信息汇总（总览/硬件/软件三组，字段不得合并/增加/删除）+ 表2 测试数据（10 指标 × 并发 1/8/16/32）；居中遮罩、80vh 滚动、× 与遮罩可关 -->
+    <div class="modal" id="aisModal" role="dialog" aria-modal="true" aria-label="AISBench 详细报告">
+      <div class="modal-box">
+        <div class="modal-head">
+          <div>
+            <h2 id="aisMTitle" style="font-size:18px;display:inline"></h2>
+            <div class="gray" id="aisMSub" style="margin-top:4px"></div>
+          </div>
+          <button class="mclose" aria-label="关闭详情弹层">×</button>
+        </div>
+        <div class="msec">
+          <h3>表1 · 基础信息汇总</h3>
+          <h3 style="font-size:13px;color:#5a6169">总览</h3>
+          <table class="tbl kv"><tbody id="aisMOv"></tbody></table>
+          <h3 style="font-size:13px;color:#5a6169;margin-top:12px">硬件</h3>
+          <table class="tbl kv"><tbody id="aisMHw"></tbody></table>
+          <h3 style="font-size:13px;color:#5a6169;margin-top:12px">软件</h3>
+          <table class="tbl kv"><tbody id="aisMSw"></tbody></table>
+        </div>
+        <div class="msec" style="border-bottom:none">
+          <h3>表2 · 测试数据</h3>
+          <table class="tbl" aria-label="测试数据：10 指标 × 并发列">
+            <thead><tr><th>指标</th><th>并发 1</th><th>并发 8</th><th>并发 16</th><th>并发 32</th></tr></thead>
+            <tbody id="aisMData"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- ==================== ClusterBench 页（PRD-007，v0.9 启用）：三楼层 = 1 工具介绍与统计 → 2 筛选器 → 3 场景案例卡片网格（卡片不可点击） ==================== -->
+<section class="page" id="page-cluster">
+  <div class="wrap">
+
+    <!-- ClusterBench 楼层1（PRD-007.1）：工具名+简介+代码仓链接+统计卡片 1 项（已收录案例数，大数字+标签，与 CPUBench 统计卡同规格；无说明书/下载） -->
+    <div class="floor">
+      <div class="floor-h"><h2>ClusterBench · 通算超节点测评工具</h2></div>
+      <p style="margin-bottom:10px">ClusterBench 是面向通算超节点的集群级性能测评工具，覆盖大模型训练、大模型推理、大数据分析、高性能计算等应用场景，以评测案例库形式汇聚各厂商提交的真机测评数据与场景实践。平台提供案例筛选与浏览能力，供用户公开查阅参考。</p>
+      <p class="gray">代码仓：<a href="https://gitcode.com/benchmark-sig/ClusterBench" target="_blank" rel="noopener">https://gitcode.com/benchmark-sig/ClusterBench</a></p>
+      <div class="sc4" style="grid-template-columns:repeat(1,1fr);max-width:340px;margin-top:18px">
+        <div class="scard bar-b"><div class="val" id="clusterTotal">6</div><div class="sub">已收录通算超节点评测案例</div></div>
+      </div>
+    </div>
+
+    <!-- ClusterBench 楼层2（PRD-007.2）：筛选器 2 个多选下拉（应用场景/厂商）——与 CPUBench 筛选器同规格：下拉内搜索过滤选项、触发按钮"已选 n 项"、面板外点击关闭、清除选择；多选+实时联动过滤案例卡片 -->
+    <div class="floor">
+      <div class="floor-h"><h2>筛选器 + 场景案例</h2><span class="note">筛选器均为多选、下拉内搜索；多选+实时联动（正式版实现）</span></div>
+      <div class="filters" id="clusterFilters">
+        <div class="fdd">
+          <button class="fdd-btn" data-name="应用场景" aria-haspopup="true" aria-expanded="false">应用场景</button>
+          <div class="fdd-panel" id="c-scene" aria-label="应用场景多选"></div>
+        </div>
+        <div class="fdd">
+          <button class="fdd-btn" data-name="厂商" aria-haspopup="true" aria-expanded="false">厂商</button>
+          <div class="fdd-panel" id="c-vendor" aria-label="厂商多选"></div>
+        </div>
+        <span class="ov-count" aria-label="案例命中条数">共 <span id="clusterHit">6</span> 篇案例</span>
+      </div>
+      <!-- ClusterBench 楼层3（PRD-007.3）：场景案例卡片网格 3 列：应用场景标签+案例标题+厂商+应用效果摘要两行+时间；卡片不可点击（纯展示，无跳转无详情弹窗） -->
+      <div class="cards" id="clusterCards" aria-label="场景案例卡片（不可点击，纯展示）"></div>
+      <p class="note" style="margin-top:8px">案例卡片为纯展示形态，本期不提供跳转与详情弹窗（PRD-007.3 用户裁决）。</p>
+    </div>
+
+  </div>
+</section>
+
+<!-- ==================== 资讯页（PRD-004）：双 tab JS 切换。tab1 资讯概览（新闻中心+通知公告双栏列表，与首页楼层1 同构）；tab2 全部资讯（卡片网格 3 列×2 行：封面占位块→标题2行→分类标签→摘要2行→元信息行 日期+来源，样式参照 新闻资讯卡片.jpg） ==================== -->
+<section class="page" id="page-news">
+  <div class="wrap">
+    <!-- 参照 HiFloat /zh/news：页头大标题+副标题；左侧筛选栏（搜索+时间+标签）；右侧资讯列表行（标签行→标题→摘要2行→日期） -->
+    <div class="hero"><h1>新闻</h1><p>Benchmark 平台社区动态、产品新闻与重要活动公告</p></div>
+    <div class="news-layout">
+      <aside class="news-side">
+        <input type="text" class="nsearch" id="newsSearch" placeholder="搜索" aria-label="搜索资讯">
+        <h3>时间</h3>
+        <div class="fchips" id="newsTimeChips"></div>
+        <h3>标签</h3>
+        <div class="fchips" id="newsTagChips"></div>
+      </aside>
+      <div id="newsList" aria-live="polite"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ==================== 活动页（PRD-004）：双 tab JS 切换。tab1 活动日历（与首页楼层2 同一组件，完整结构）；tab2 全部活动（卡片网格同资讯卡片样式：封面占位块→标题→类型标签→摘要→元信息行） ==================== -->
+<section class="page" id="page-activity">
+  <div class="wrap">
+    <!-- 参照 HiFloat /zh/activity：页头大标题+副标题+类型统计 chips；tab1 活动日历（hifloat活动日历.jpg 样式）；tab2 全部活动参照 /zh/news 列表式 -->
+    <div class="hero">
+      <h1>2026 活动概览</h1>
+      <p>学术会议、产业峰会与社区活动，全年活动一览</p>
+      <div class="chips" id="actChips"></div>
+    </div>
+    <div class="ctabs" role="tablist" aria-label="活动页 tab 切换" style="margin-bottom:16px">
+      <button class="ctab active" data-at="1">活动日历</button>
+      <button class="ctab" data-at="2">全部活动</button>
+    </div>
+
+    <!-- tab1 活动日历（同首页楼层2 组件，hifloat活动日历.jpg 样式）：白卡容器 + 日历/列表视图切换 + 月历 + 右栏事件详情 -->
+    <div id="actPane1">
+      <div class="cal-shell">
+      <div class="cal" id="cal-act">
+        <div class="cal-top">
+          <div class="cal-month">
+            <button class="btn icon ghost cal-prev" aria-label="上一月">&lt;</button>
+            <span class="m-label">2026 年 10 月</span>
+            <button class="btn icon ghost cal-next" aria-label="下一月">&gt;</button>
+          </div>
+          <span class="cal-latest">最新日程：2026-10-28</span>
+          <div class="cal-filter" role="group" aria-label="事件类型筛选">
+            <button class="ctab active" data-ftype="全部">全部</button>
+            <button class="ctab" data-ftype="会议">会议</button>
+            <button class="ctab" data-ftype="活动">活动</button>
+            <button class="ctab" data-ftype="峰会">峰会</button>
+          </div>
+        </div>
+        <div class="cal-body">
+          <div>
+            <div class="cal-grid">
+              <div class="cal-cell hd">日</div><div class="cal-cell hd">一</div><div class="cal-cell hd">二</div><div class="cal-cell hd">三</div><div class="cal-cell hd">四</div><div class="cal-cell hd">五</div><div class="cal-cell hd odd">六</div>
+            </div>
+            <div class="cal-grid cal-days"></div>
+          </div>
+          <div>
+            <ul class="cal-ev-list"></ul>
+            <div class="cal-panel"></div>
+          </div>
+        </div>
+      </div>
+      <div class="cal-listbox" style="display:none"></div>
+      </div>
+    </div>
+
+    <!-- tab2 全部活动：参照 HiFloat /zh/news 列表式（左筛选栏 + 右列表行） -->
+    <div id="actPane2" style="display:none">
+      <div class="news-layout">
+        <aside class="news-side">
+          <input type="text" class="nsearch" id="actSearch" placeholder="搜索" aria-label="搜索活动">
+          <h3>时间</h3>
+          <div class="fchips" id="actTimeChips"></div>
+          <h3>类型</h3>
+          <div class="fchips" id="actTypeChips"></div>
+        </aside>
+        <div id="actList" aria-live="polite"></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<!-- ===== 页脚：简洁版权行 ===== -->
+<footer class="site">
+  <p>© 2026 Benchmark 平台 · 低保真原型（方案A）· 仅用于需求评审，数据均为占位内容</p>
+</footer>
+
+<!-- 全局信息卡（CPUBench 行内条 / 对比区①②④ / AISBench 节点共用，绝对定位） -->
+<div id="tooltip" role="tooltip"></div>
+
+<script>
+/* ==================== 全局数据 ==================== */
+var SUITES=[["IntSingle","整型单核"],["FloatSingle","浮点单核"],["IntConcurrent","整型并发"],["FloatConcurrent","浮点并发"]];
+var GRAY=["#0969DA","#FA7305","#0BB151","#2E53FA","#984BF6","#8C959D"];
+/* 子项程序清单按套件区分（PRD v0.11 待确认 12 裁决：Int 套件 12 项 / Float 套件 10 项，来自四份原始报告解析） */
+var SUBS={int:["x264","gcc","gzip","tpcc","tpch","kmeans","wordcount","velvet","openssl","rapidjson","python","xz"],
+          float:["lightgbm","nektar","phenglei","phyml","gromacs","povray","openfoam","lammps","cube","wrf"]};
+function subList(si){return (si===1||si===3)?SUBS.float:SUBS.int;}
+function subScores(r,si){return (si===1||si===3)?r.subF:r.sub;}
+
+/* CPUBench 总览/记录数据（16 行总览，前 13 行同时作为测试记录表数据；data-* 供行内条 hover 信息卡使用） */
+var CPU=[
+ {id:1, unit:"某云计算中心", vendor:"新华三", model:"R4950 G5", cpu:"AMD EPYC 7543(32C-64T)", arch:"x86", s:[182.5,176.2,4120.8,3860.4], date:"2026-05-08 22:32:30", socket:2, sub:[15.2,12.8,18.6,14.1,16.8,15.5,13.2,14.8,17.9,15.1,12.6,16.4], subF:[13.8,11.2,15.4,12.6,14.9,13.1,12.2,14.5,13.5,15.8]},
+ {id:2, unit:"某高校超算中心", vendor:"超聚变", model:"2288H V6", cpu:"Intel Xeon Platinum 8380(40C-80T)", arch:"x86", s:[175.8,170.4,4356.2,4012.7], date:"2026-05-12 10:18:45", socket:2, sub:[14.6,12.3,17.9,13.6,16.1,14.9,12.8,14.2,17.2,14.6,12.1,15.8], subF:[13.2,10.7,14.8,12.1,14.3,12.6,11.7,13.9,13.0,15.2]},
+ {id:3, unit:"某运营商研究院", vendor:"浪潮", model:"R5300 G5", cpu:"AMD EPYC 7543(32C-64T)", arch:"x86", s:[180.1,174.6,4088.5,3795.2], date:"2026-06-02 16:45:10", socket:2, sub:[15.0,12.6,18.3,13.9,16.5,15.3,13.0,14.6,17.6,14.9,12.4,16.1], subF:[13.6,11.0,15.1,12.4,14.6,12.9,12.0,14.2,13.3,15.5]},
+ {id:4, unit:"某国有银行数据中心", vendor:"联想", model:"Chaoqiang N810T A2", cpu:"Kunpeng-920(64C-64T)", arch:"ARM", s:[142.3,138.9,3256.4,3088.6], date:"2026-06-15 09:02:33", socket:2, sub:[11.8,9.9,14.5,11.1,13.2,12.1,10.5,11.6,14.0,11.9,9.8,12.9], subF:[10.8,8.9,12.1,9.9,11.6,10.4,9.6,11.4,10.6,12.3]},
+ {id:5, unit:"某云计算中心", vendor:"百信", model:"2288H V6", cpu:"Intel Xeon Platinum 8380(40C-80T)", arch:"x86", s:[174.2,168.8,4298.1,3966.3], date:"2026-06-21 14:27:51", socket:2, sub:[14.5,12.2,17.7,13.5,15.9,14.8,12.7,14.1,17.0,14.5,12.0,15.6], subF:[13.1,10.6,14.6,12.0,14.1,12.5,11.6,13.7,12.9,15.0]},
+ {id:6, unit:"某高校超算中心", vendor:"新华三", model:"R4900 G5", cpu:"Intel Xeon Platinum 8380(40C-80T)", arch:"x86", s:[172.6,167.1,4244.6,3921.8], date:"2026-07-03 11:55:08", socket:2, sub:[14.3,12.0,17.5,13.3,15.7,14.6,12.5,13.9,16.8,14.3,11.8,15.4], subF:[12.9,10.4,14.4,11.8,13.9,12.3,11.4,13.5,12.7,14.8]},
+ {id:7, unit:"某运营商研究院", vendor:"超聚变", model:"2488H V6", cpu:"AMD EPYC 7543(32C-64T)", arch:"x86", s:[183.7,177.5,4176.9,3902.1], date:"2026-07-11 20:14:26", socket:4, sub:[15.3,12.9,18.7,14.2,16.9,15.6,13.3,14.9,18.0,15.2,12.7,16.5], subF:[13.9,11.3,15.5,12.7,15.0,13.2,12.3,14.6,13.6,15.9]},
+ {id:8, unit:"某证券公司信息技术部", vendor:"浪潮", model:"NF5280M6", cpu:"Intel Xeon Platinum 8380(40C-80T)", arch:"x86", s:[176.4,171.0,4388.7,4045.9], date:"2026-07-19 08:39:12", socket:2, sub:[14.7,12.4,18.0,13.7,16.2,15.0,12.9,14.3,17.3,14.7,12.2,15.9], subF:[13.3,10.8,14.9,12.2,14.4,12.7,11.8,14.0,13.1,15.3]},
+ {id:9, unit:"某省政务云", vendor:"联想", model:"Chaoqiang N810T A2", cpu:"Kunpeng-920(64C-64T)", arch:"ARM", s:[139.8,136.2,3188.2,3022.5], date:"2026-08-05 17:46:59", socket:2, sub:[11.6,9.7,14.2,10.9,12.9,11.9,10.3,11.4,13.7,11.7,9.6,12.6], subF:[10.6,8.7,11.9,9.7,11.4,10.2,9.4,11.2,10.4,12.1]},
+ {id:10, unit:"某制造企业数据中心", vendor:"百信", model:"PG5210 G3", cpu:"AMD EPYC 7543(32C-64T)", arch:"x86", s:[179.5,173.8,4052.3,3761.7], date:"2026-08-14 13:21:44", socket:2, sub:[14.9,12.5,18.2,13.8,16.4,15.2,12.9,14.5,17.5,14.8,12.3,16.0], subF:[13.5,10.9,15.0,12.3,14.5,12.8,11.9,14.1,13.2,15.4]},
+ {id:11, unit:"某云计算中心", vendor:"新华三", model:"R5350 G5", cpu:"AMD EPYC 7543(32C-64T)", arch:"x86", s:[181.9,175.7,4133.6,3872.9], date:"2026-08-27 19:08:37", socket:2, sub:[15.1,12.7,18.5,14.0,16.7,15.4,13.1,14.7,17.8,15.0,12.5,16.3], subF:[13.7,11.1,15.3,12.5,14.8,13.0,12.1,14.4,13.4,15.7]},
+ {id:12, unit:"某高校超算中心", vendor:"浪潮", model:"R5300 G5", cpu:"Kunpeng-920(64C-64T)", arch:"ARM", s:[143.6,140.1,3288.9,3118.3], date:"2026-09-06 15:33:20", socket:2, sub:[11.9,10.0,14.6,11.2,13.3,12.2,10.6,11.7,14.1,12.0,9.9,13.0], subF:[10.9,9.0,12.2,10.0,11.7,10.5,9.7,11.5,10.7,12.4]},
+ {id:13, unit:"某运营商研究院", vendor:"超聚变", model:"2288X V6", cpu:"Intel Xeon Platinum 8380(40C-80T)", arch:"x86", s:[177.3,171.9,4412.5,4066.8], date:"2026-09-18 10:57:02", socket:2, sub:[14.8,12.5,18.1,13.8,16.3,15.1,13.0,14.4,17.4,14.8,12.3,16.0], subF:[13.4,10.8,14.9,12.2,14.4,12.7,11.8,14.0,13.1,15.3]},
+ {id:14, unit:"某能源集团信息中心", vendor:"联想", model:"Chaoqiang N810T A2", cpu:"Kunpeng-920(64C-64T)", arch:"ARM", s:[141.2,137.6,3222.7,3055.4], date:"2026-09-25 21:12:18", socket:2, sub:[11.7,9.8,14.4,11.0,13.1,12.0,10.4,11.5,13.9,11.8,9.7,12.8], subF:[10.7,8.8,12.0,9.8,11.5,10.3,9.5,11.3,10.5,12.2]},
+ {id:15, unit:"某省政务云", vendor:"新华三", model:"R4950 G5", cpu:"AMD EPYC 7543(32C-64T)", arch:"x86", s:[183.1,176.9,4155.2,3889.6], date:"2026-10-08 12:44:56", socket:2, sub:[15.2,12.8,18.6,14.1,16.8,15.5,13.2,14.8,17.9,15.1,12.6,16.4], subF:[13.8,11.2,15.4,12.6,14.9,13.1,12.2,14.5,13.5,15.8]},
+ {id:16, unit:"某制造企业数据中心", vendor:"百信", model:"2288H V6", cpu:"Intel Xeon Platinum 8380(40C-80T)", arch:"x86", s:[173.5,167.9,4276.8,3944.1], date:"2026-10-16 18:29:31", socket:2, sub:[14.4,12.1,17.6,13.4,15.8,14.7,12.6,14.0,16.9,14.4,11.9,15.5], subF:[13.0,10.5,14.5,11.9,14.0,12.4,11.5,13.6,12.8,14.9]}
+];
+
+/* AISBench 记录数据（12 条；x=输出吞吐 tokens/s；y0=输出吞吐/并发数、y1=TTFT P90 ms、y2=E2EL P90 ms，按并发 1/8/16/32） */
+var CHIP_AIS=[["Nvidia","GB300 NVL72","TRTLLM"],["华为","Atlas 800I A2","CANN"],["寒武纪","MLU590","MagicMind"]];
+var AIS=[
+ {vendor:"Nvidia", sys:"DGX GB300 NVL72", model:"DeepSeek R1", date:"2026-09-12", acc:"GB300 NVL72", fw:"TRTLLM", prec:"FP8", ctx:"1k/1k", x:[1800,11200,17600,21000], y0:[1800,1400,1100,656], y1:[320,480,760,1150], y2:[2100,2900,4200,6100], cards:72},
+ {vendor:"Nvidia", sys:"DGX GB300 NVL72", model:"DeepSeek R1", date:"2026-09-20", acc:"GB300 NVL72", fw:"TRTLLM", prec:"BF16", ctx:"1k/1k", x:[1500,9600,15200,18400], y0:[1500,1200,950,575], y1:[360,540,860,1280], y2:[2400,3300,4700,6800], cards:72},
+ {vendor:"华为", sys:"Atlas 800I A2 集群", model:"DeepSeek R1", date:"2026-09-25", acc:"Atlas 800I A2", fw:"CANN", prec:"BF16", ctx:"1k/1k", x:[1350,8800,14000,17200], y0:[1350,1100,875,538], y1:[410,600,950,1420], y2:[2700,3700,5300,7600], cards:64},
+ {vendor:"华为", sys:"Atlas 800I A2 集群", model:"DeepSeek R1", date:"2026-10-03", acc:"Atlas 800I A2", fw:"CANN", prec:"FP8", ctx:"1k/1k", x:[1600,10200,16100,19600], y0:[1600,1275,1006,613], y1:[370,550,880,1300], y2:[2500,3400,4900,7000], cards:64},
+ {vendor:"寒武纪", sys:"MLU590 推理服务器", model:"DeepSeek R1", date:"2026-10-06", acc:"MLU590", fw:"MagicMind", prec:"INT8", ctx:"1k/1k", x:[1200,7600,12100,15000], y0:[1200,950,756,469], y1:[460,680,1080,1600], y2:[3000,4100,5900,8400], cards:32},
+ {vendor:"寒武纪", sys:"MLU590 推理服务器", model:"DeepSeek R1", date:"2026-10-11", acc:"MLU590", fw:"MagicMind", prec:"FP16", ctx:"1k/1k", x:[1050,6800,10800,13600], y0:[1050,850,675,425], y1:[520,760,1200,1780], y2:[3400,4600,6600,9300], cards:32},
+ {vendor:"Nvidia", sys:"DGX GB300 NVL72", model:"DeepSeek V4 Pro", date:"2026-10-14", acc:"GB300 NVL72", fw:"TRTLLM", prec:"FP8", ctx:"1k/1k", x:[1650,10400,16500,19900], y0:[1650,1300,1031,622], y1:[365,545,870,1290], y2:[2450,3350,4800,6900], cards:72},
+ {vendor:"华为", sys:"Atlas 800I A2 集群", model:"DeepSeek V4 Pro", date:"2026-10-16", acc:"Atlas 800I A2", fw:"CANN", prec:"BF16", ctx:"1k/1k", x:[1280,8300,13200,16300], y0:[1280,1038,825,509], y1:[430,630,1000,1500], y2:[2800,3900,5500,7900], cards:64},
+ {vendor:"寒武纪", sys:"MLU590 推理服务器", model:"Kimi K3", date:"2026-10-18", acc:"MLU590", fw:"MagicMind", prec:"INT8", ctx:"1k/1k", x:[1120,7200,11500,14300], y0:[1120,900,719,447], y1:[490,720,1140,1690], y2:[3200,4400,6200,8800], cards:32},
+ {vendor:"Nvidia", sys:"DGX GB300 NVL72", model:"GLM5.2", date:"2026-10-21", acc:"GB300 NVL72", fw:"TRTLLM", prec:"FP8", ctx:"8k/8k", x:[980,6400,10200,12600], y0:[980,800,638,394], y1:[540,800,1260,1860], y2:[3500,4800,6800,9600], cards:72},
+ {vendor:"华为", sys:"Atlas 800I A2 集群", model:"Qwen3 32B", date:"2026-10-23", acc:"Atlas 800I A2", fw:"CANN", prec:"FP8", ctx:"1k/1k", x:[1700,10800,17000,20500], y0:[1700,1350,1063,641], y1:[355,525,840,1250], y2:[2350,3200,4600,6600], cards:64},
+ {vendor:"寒武纪", sys:"MLU590 推理服务器", model:"Qwen3 32B", date:"2026-10-26", acc:"MLU590", fw:"MagicMind", prec:"FP16", ctx:"1k/1k", x:[1260,8000,12700,15600], y0:[1260,1000,794,488], y1:[440,650,1030,1530], y2:[2900,4000,5700,8100], cards:32}
+];
+var CONC=[1,8,16,32];
+var AIS_METRICS=["输出吞吐 tokens/s","单卡输出吞吐","TTFT 平均 ms","TTFT P90 ms","TPOT 平均 ms","TPOT P90 ms","E2EL 平均 ms","E2EL P90 ms","总请求数","QPS"];
+
+/* 活动日历事件数据（今日=2026-10-27；最新日程=2026-10-28） */
+var EVENTS=[
+ {d:"2026-10-27",type:"会议",title:"ClusterBench 需求预研会",range:"2026-10-27",sig:"SIG 测评标准组",det:["征集集群测评场景与指标需求，为 ClusterBench 工具立项提供输入","李工","14:00 - 16:00","MTG-20261027-003","线上会议平台","会议链接（占位）","会议纪要（会后发布）"]},
+ {d:"2026-10-28",type:"会议",title:"Benchmark 技术委员会例会（第 12 期）",range:"2026-10-28",sig:"SIG 测评标准组",det:["评审 CPUBench v1.4 测试项调整提案，确认四季度数据入库计划","张工","14:00 - 16:00","MTG-20261028-001","线上会议平台","会议链接（占位）","会议纪要（会后发布）"]},
+ {d:"2026-10-30",type:"活动",title:"CPUBench 测评数据提交通道维护窗口",range:"2026-10-30",sig:"SIG 数据组",det:["提交通道维护 22:00-24:00，期间暂停数据提交，浏览不受影响","平台运维","22:00 - 24:00","ACT-20261030-002","站内公告","公告链接（占位）","无"]},
+ {d:"2026-11-05",type:"活动",title:"CPUBench 数据提交规范线上培训",range:"2026-11-05",sig:"SIG 数据组",det:["面向整机厂商与测试单位讲解 result 目录规范与 Typical 分数计算","王工","10:00 - 12:00","ACT-20261105-001","线上培训平台","培训链接（占位）","培训材料（会后发布）"]},
+ {d:"2026-11-12",type:"会议",title:"AISBench 推理基准研讨会",range:"2026-11-12",sig:"SIG AI 测评组",det:["讨论吞吐/交互性/TTFT/E2EL 指标口径对齐方案","赵工","09:30 - 11:30","MTG-20261112-002","线上会议平台","会议链接（占位）","会议纪要（会后发布）"]},
+ {d:"2026-11-18",type:"活动",title:"Benchmark 开发者工作坊",range:"2026-11-18",sig:"SIG 工具组",det:["实操演练测试环境搭建、参数调优与结果提交全流程","陈工","13:30 - 17:30","ACT-20261118-003","线下·某高校超算中心","报名链接（占位）","无"]},
+ {d:"2026-11-26",type:"峰会",title:"2026 算力基准峰会",range:"2026-11-26 ～ 2026-11-27",sig:"平台运营组",det:["发布年度 CPU/AI 推理基准数据报告，厂商与专家分享实践","平台运营组","09:00 - 17:00","SUM-20261126-001","线下+线上直播","峰会链接（占位）","演讲材料（会后发布）"]}
+];
+var TYPE_COLOR={"会议":"#0969DA","活动":"#0BB151","峰会":"#FA7305"};
+
+/* ==================== 原型页签切换 + 站点导航 ==================== */
+var TOPMAP={home:"nav-home",cpu:"nav-tool",ais:"nav-tool",cluster:"nav-tool",news:"nav-dyn",activity:"nav-dyn"};
+function go(p){
+  document.querySelectorAll(".page").forEach(function(s){s.classList.toggle("show",s.id==="page-"+p);});
+  document.querySelectorAll(".proto-tabs button").forEach(function(b){b.classList.toggle("active",b.dataset.page===p);});
+  document.querySelectorAll(".top-item").forEach(function(t){t.classList.remove("sel","open");t.querySelector(".top-btn").setAttribute("aria-expanded","false");});
+  var top=document.getElementById(TOPMAP[p]); if(top) top.classList.add("sel");
+  document.querySelectorAll(".dd a").forEach(function(a){a.classList.toggle("on",a.dataset.go===p);});
+  window.scrollTo(0,0);
+}
+document.querySelectorAll("[data-go]").forEach(function(el){
+  el.addEventListener("click",function(){go(el.dataset.go);});
+});
+/* 顶部原型页签按钮：点击切换页面（go() + 高亮联动） */
+document.querySelectorAll(".proto-tabs button").forEach(function(b){
+  b.addEventListener("click",function(){go(b.dataset.page);});
+});
+/* 工具/动态：点击一级项展开二级下拉（JS）；二级项跳对应页签并收起 */
+document.querySelectorAll(".top-item .top-btn").forEach(function(btn){
+  var item=btn.parentElement;
+  if(!item.querySelector(".dd")) return;
+  btn.addEventListener("click",function(){
+    var open=item.classList.contains("open");
+    document.querySelectorAll(".top-item.open").forEach(function(t){t.classList.remove("open");t.querySelector(".top-btn").setAttribute("aria-expanded","false");});
+    if(!open){item.classList.add("open");btn.setAttribute("aria-expanded","true");}
+  });
+});
+document.addEventListener("click",function(e){
+  if(!e.target.closest(".top-item")){
+    document.querySelectorAll(".top-item.open").forEach(function(t){t.classList.remove("open");t.querySelector(".top-btn").setAttribute("aria-expanded","false");});
+  }
+  if(!e.target.closest(".fdd")){document.querySelectorAll(".fdd.open").forEach(function(d){d.classList.remove("open");});}
+});
+
+/* ==================== 多选下拉面板（通用：点击按钮开合、清除按钮） ==================== */
+document.querySelectorAll(".fdd-btn").forEach(function(btn){
+  btn.addEventListener("click",function(){
+    var dd=btn.closest(".fdd"), was=dd.classList.contains("open");
+    document.querySelectorAll(".fdd.open").forEach(function(d){if(d!==dd)d.classList.remove("open");});
+    dd.classList.toggle("open",!was);
+    btn.setAttribute("aria-expanded",String(!was));
+  });
+});
+document.addEventListener("click",function(e){
+  if(e.target.classList&&e.target.classList.contains("fdd-clear")){
+    var panel=e.target.closest(".fdd-panel");
+    panel.querySelectorAll("input[type=checkbox]").forEach(function(c){c.checked=false;});
+    panel.dispatchEvent(new Event("change",{bubbles:true}));
+  }
+});
+
+/* ==================== 全局信息卡（#tooltip，绝对定位，data-* 驱动） ==================== */
+var tip=document.getElementById("tooltip");
+function dotHtml(i){return '<span class="dot" style="background:'+GRAY[i]+'"></span>';}
+function cardRow(i,r){return dotHtml(i)+SUITES[i][0]+' '+SUITES[i][1]+'：<b>'+r.s[i].toFixed(1)+'</b>';}
+function showTip(html,x,y){
+  tip.innerHTML=html;tip.style.display="block";
+  var px=x+16;if(px+296>document.documentElement.clientWidth+window.scrollX)px=x-296;
+  tip.style.left=px+"px";tip.style.top=(y+14)+"px";
+}
+function hideTip(){tip.style.display="none";}
+/* hover 内容2 字段：型号粗体标题 / 厂商·处理器副行 / 分隔线 / 四套件色点+名称+分数四行 */
+function tipCmp(rid){
+  var r=CPU[rid-1];
+  return '<div class="hc">'+r.model+'</div><div class="hc-sub">'+r.vendor+' · '+r.cpu+'</div><div class="sep"></div>'
+    +cardRow(0,r)+'<br>'+cardRow(1,r)+'<br>'+cardRow(2,r)+'<br>'+cardRow(3,r);
+}
+/* hover 内容 字段（总览表行内条）：型号粗体/厂商/处理器+Socket/测试单位/结果目录时间/分隔线/当前套件分数 */
+function tipOv(el){
+  var r=CPU[el.dataset.id-1],si=+el.dataset.suite;
+  return '<div class="hc">'+r.model+'</div>'
+    +'整机厂商：'+r.vendor+'<br>处理器：'+r.cpu+'　Socket：'+r.socket
+    +'<br>测试单位：'+r.unit+'<br>结果目录时间：'+r.date
+    +'<div class="sep"></div>'+SUITES[si][0]+' '+SUITES[si][1]+'：<b>'+r.s[si].toFixed(1)+'</b>';
+}
+document.addEventListener("mouseover",function(e){
+  var el=e.target.closest("[hovercard]");
+  if(!el){return;}
+  var html=(el.getAttribute("hovercard")==="ov")?tipOv(el):tipCmp(el.getAttribute("hovercard"));
+  showTip(html,e.pageX,e.pageY);
+});
+document.addEventListener("mousemove",function(e){
+  if(tip.style.display==="block"&&e.target.closest("[hovercard]")){
+    var px=e.pageX+16;if(px+296>document.documentElement.clientWidth+window.scrollX)px=e.pageX-296;
+    tip.style.left=px+"px";tip.style.top=(e.pageY+14)+"px";
+  }
+});
+document.addEventListener("mouseout",function(e){if(e.target.closest("[hovercard]"))hideTip();});
+window.addEventListener("scroll",hideTip);
+
+/* ==================== CPUBench 楼层2：筛选器 + 总览分析表 ==================== */
+var cpuSel={}; // id -> true
+CPU.forEach(function(r,i){if(i<6)cpuSel[r.id]=true;}); // 默认勾选前 6 行
+function uniq(arr){var s=[];arr.forEach(function(v){if(s.indexOf(v)<0)s.push(v);});return s;}
+/* PRD-005.2 筛选器：面板顶部搜索 input 实时过滤下方选项（v0.7 恢复）；触发按钮显示"已选 n 项" */
+function buildFilterPanel(pid,name,vals){
+  var p=document.getElementById(pid),html="";
+  html+='<input type="text" class="ov-fsearch" placeholder="在'+name+'中搜索" aria-label="在'+name+'中搜索">';
+  vals.forEach(function(v){html+='<label><input type="checkbox" value="'+v+'"> '+v+'</label>';});
+  html+='<button type="button" class="fdd-clear">清除选择</button>';
+  p.innerHTML=html;
+  p.addEventListener("change",renderOverview);
+  /* 交互：下拉内搜索过滤选项——按文本包含隐藏不匹配选项 */
+  var kw=p.querySelector(".ov-fsearch");
+  kw.addEventListener("input",function(){
+    var k=kw.value.trim().toLowerCase();
+    p.querySelectorAll("label").forEach(function(lb){
+      lb.style.display=(!k||lb.textContent.toLowerCase().indexOf(k)>=0)?"":"none";
+    });
+  });
+}
+buildFilterPanel("f-unit","测试单位",uniq(CPU.map(function(r){return r.unit;})));
+buildFilterPanel("f-vendor","整机厂商",uniq(CPU.map(function(r){return r.vendor;})));
+buildFilterPanel("f-model","整机型号",uniq(CPU.map(function(r){return r.model;})));
+buildFilterPanel("f-cpu","处理器",uniq(CPU.map(function(r){return r.cpu;})));
+buildFilterPanel("f-arch","架构",["x86","ARM"]);
+/* 触发按钮计数：已选 n 项（0 项时显示占位名称） */
+function updateFilterBtns(){
+  document.querySelectorAll("#cpuFilters .fdd").forEach(function(dd){
+    var btn=dd.querySelector(".fdd-btn"),name=btn.dataset.name;
+    var n=dd.querySelectorAll("input[type=checkbox]:checked").length;
+    btn.textContent=n?(name+"：已选 "+n+" 项"):name;
+  });
+}
+function checkedVals(pid){
+  var v=[];document.querySelectorAll("#"+pid+" input:checked").forEach(function(c){v.push(c.value);});return v;
+}
+function rowPass(r){
+  var f=[["f-unit",r.unit],["f-vendor",r.vendor],["f-model",r.model],["f-cpu",r.cpu],["f-arch",r.arch]];
+  for(var i=0;i<f.length;i++){var v=checkedVals(f[i][0]);if(v.length&&v.indexOf(f[i][1])<0)return false;}
+  return true;
+}
+/* PRD-005.2 总览分析表：横向条形行式（样式参照柱状图.jpg，v0.7）；套件切换重算各行条宽与分数 */
+var ovSuite=0;
+function renderOvSuiteTabs(){
+  var box=document.getElementById("ovSuiteTabs"),html="";
+  SUITES.forEach(function(s,i){html+='<button class="ov-suite'+(i===ovSuite?" active":"")+'" data-i="'+i+'">'+s[0]+'</button>';});
+  box.innerHTML=html;
+  box.querySelectorAll(".ov-suite").forEach(function(b){
+    b.addEventListener("click",function(){ovSuite=+b.dataset.i;renderOvSuiteTabs();renderOverview();});
+  });
+  document.getElementById("ovBarCol").textContent=SUITES[ovSuite][0]+" 分数条";
+}
+function renderOverview(){
+  var tb=document.getElementById("ovBody"),html="",mx=0;
+  CPU.forEach(function(r){if(rowPass(r))mx=Math.max(mx,r.s[ovSuite]);});
+  CPU.forEach(function(r){
+    if(!rowPass(r)){delete cpuSel[r.id];return;} // 被筛掉的行自动移出已选
+    var w=mx?Math.max(4,Math.round(r.s[ovSuite]/mx*100)):0;
+    html+='<div class="ov-row">'
+      +'<span><input type="checkbox" data-id="'+r.id+'"'+(cpuSel[r.id]?' checked':'')+' aria-label="选择 '+r.model+' 记录"></span>'
+      +'<span class="ov-vendor">'+r.vendor+'</span>'
+      +'<span>'+r.model+'</span>'
+      +'<span class="ov-sub">'+r.cpu+'</span>'
+      +'<span class="ov-sub">'+r.arch+'</span>'
+      +'<span class="ov-track"><span class="ov-bar" style="width:'+w+'%" hovercard="ov" data-id="'+r.id+'" data-suite="'+ovSuite+'" aria-label="'+SUITES[ovSuite][0]+' 分数条 '+r.s[ovSuite].toFixed(1)+'"></span></span>'
+      +'<span class="ov-score sc">'+r.s[ovSuite].toFixed(1)+'</span>'
+      +'</div>';
+  });
+  tb.innerHTML=html||'<p class="note" style="padding:12px 0">当前筛选条件无命中记录，请调整筛选器。</p>';
+  updateFilterBtns();updateSelCount();renderCompare();
+}
+function updateSelCount(){document.getElementById("selCount").textContent=Object.keys(cpuSel).length;}
+/* 勾选切换：满 6 行后再勾第 7 行阻断 + 内联文本提示（成因+建议） */
+document.getElementById("ovBody").addEventListener("change",function(e){
+  if(e.target.type!=="checkbox")return;
+  var id=+e.target.dataset.id;
+  if(e.target.checked){
+    if(Object.keys(cpuSel).length>=6){
+      e.target.checked=false;
+      var w=document.getElementById("cmpWarn");
+      w.textContent="最多选择 6 行作为对比数据，请先取消已选行（当前已选满 6 行，新勾选被阻断）。";
+      w.style.display="block";
+      return;
+    }
+    cpuSel[id]=true;document.getElementById("cmpWarn").style.display="none";
+  }else{delete cpuSel[id];}
+  updateSelCount();renderCompare();
+});
+document.getElementById("cpuFilters").addEventListener("change",function(){document.getElementById("cmpWarn").style.display="none";});
+
+/* ==================== CPUBench 楼层3：对比分析区（四视图） ==================== */
+var cmp1Suite=0,cmp4Suite=0;
+function selRecs(){return CPU.filter(function(r){return cpuSel[r.id];});}
+function suiteTabs(elId,cur,onPick){
+  var box=document.getElementById(elId),html="";
+  SUITES.forEach(function(s,i){html+='<button class="stab'+(i===cur?" active":"")+'" data-i="'+i+'">'+s[0]+'</button>';});
+  box.innerHTML=html;
+  box.querySelectorAll(".stab").forEach(function(b){b.addEventListener("click",function(){onPick(+b.dataset.i);});});
+}
+function renderCompare(){
+  var recs=selRecs();
+  document.getElementById("cmpSource").textContent="数据源：总览分析表已选 "+recs.length+" 行";
+  renderCmp1(recs);renderCmp2(recs);renderCmp3(recs);renderCmp4(recs);
+}
+/* ① 四类测试项分组对比：横向条形（样式参照 柱状图.jpg：厂商/型号/CPU 三列右对齐标签 + 蓝色圆角横条 + 右侧分值），右上四套件切换；条形 hover=hover内容2 字段 */
+function renderCmp1(recs){
+  suiteTabs("cmp1Tabs",cmp1Suite,function(i){cmp1Suite=i;renderCmp1(selRecs());});
+  var mx=0;recs.forEach(function(r){mx=Math.max(mx,r.s[cmp1Suite]);});
+  var html="";
+  recs.forEach(function(r){
+    var w=mx?Math.max(2,Math.round(r.s[cmp1Suite]/mx*100)):0;
+    html+='<div class="bzrow"><span class="bzven">'+r.vendor+'</span><span class="bzmod">'+r.model+'</span><span class="bzcpu">'+r.cpu+'</span>'
+      +'<span class="bztrack"><span class="bzbar" style="width:'+w+'%" hovercard="'+r.id+'" aria-label="'+r.model+' '+SUITES[cmp1Suite][0]+' 条形"></span></span>'
+      +'<span class="bzscore">'+r.s[cmp1Suite].toFixed(1)+'</span></div>';
+  });
+  document.getElementById("cmp1Chart").innerHTML=html||'<p class="note">暂无已选记录，请在上方总览分析表勾选。</p>';
+}
+/* ② 雷达图：内联 SVG 四轴 + 多边形（灰度描边）+ 图例 型号(厂商)；顶点（circle）挂 JS 显示信息卡 */
+var AX_ANG=[-90,0,90,180],AX_TXT=[[0,-1,"middle"],[1,0,"start"],[0,1,"middle"],[-1,0,"end"]];
+var AX_LABEL=["IntSingle 整型单核","FloatConcurrent 浮点并发","IntConcurrent 整型并发","FloatSingle 浮点单核"];
+var AX_SUITE=[0,3,2,1]; // 轴→套件索引：上=IntSingle 右=FloatConcurrent 下=IntConcurrent 左=FloatSingle
+function renderCmp2(recs){
+  var C=520,cx=260,cy=250,R=168;
+  var gmax=[0,0,0,0];recs.forEach(function(r){for(var i=0;i<4;i++)gmax[i]=Math.max(gmax[i],r.s[i]);});
+  var s='<svg width="'+C+'" height="'+C+'" viewBox="0 0 '+C+' '+C+'" role="img" aria-label="四套件雷达图对比">';
+  [.25,.5,.75,1].forEach(function(t){
+    s+='<polygon points="'+AX_ANG.map(function(a){var rad=a*Math.PI/180;return (cx+R*t*Math.cos(rad)).toFixed(1)+","+(cy+R*t*Math.sin(rad)).toFixed(1);}).join(" ")+'" fill="none" stroke="#d9dde2"/>';
+  });
+  AX_ANG.forEach(function(a,i){
+    var rad=a*Math.PI/180,x2=cx+R*Math.cos(rad),y2=cy+R*Math.sin(rad);
+    s+='<line x1="'+cx+'" y1="'+cy+'" x2="'+x2.toFixed(1)+'" y2="'+y2.toFixed(1)+'" stroke="#c3c8cf"/>';
+    s+='<text x="'+(cx+(R+24)*AX_TXT[i][0]).toFixed(1)+'" y="'+(cy+(R+24)*AX_TXT[i][1]+4).toFixed(1)+'" text-anchor="'+AX_TXT[i][2]+'" font-size="12" fill="#2b2f33">'+AX_LABEL[i]+'</text>';
+  });
+  recs.forEach(function(r,ri){
+    var pts=AX_SUITE.map(function(si,k){var v=gmax[si]?r.s[si]/gmax[si]:0;var rad=AX_ANG[k]*Math.PI/180;return [(cx+R*v*Math.cos(rad)),(cy+R*v*Math.sin(rad))];});
+    s+='<polygon points="'+pts.map(function(p){return p[0].toFixed(1)+","+p[1].toFixed(1);}).join(" ")+'" fill="none" stroke="'+GRAY[ri]+'" stroke-width="2"/>';
+    pts.forEach(function(p){s+='<circle cx="'+p[0].toFixed(1)+'" cy="'+p[1].toFixed(1)+'" r="5" fill="#fff" stroke="'+GRAY[ri]+'" stroke-width="2" hovercard="'+r.id+'" style="cursor:pointer" aria-label="'+r.model+' 雷达顶点"></circle>';});
+  });
+  s+='</svg>';
+  document.getElementById("cmp2Chart").innerHTML=s;
+  document.getElementById("cmp2Legend").innerHTML=recs.map(function(r,ri){return '<span>'+dotHtml(ri)+r.model+'（'+r.vendor+'）</span>';}).join("");
+}
+/* ③ 相对基准倍数表：首行标"基准"；正式版支持点击型号切换基准 */
+function renderCmp3(recs){
+  if(!recs.length){document.getElementById("cmp3Table").innerHTML='<p class="note">暂无已选记录。</p>';return;}
+  var base=recs[0],html='<table class="tbl"><thead><tr><th>整机型号</th><th>整机厂商</th>';
+  SUITES.forEach(function(s){html+='<th>'+s[0]+' 倍数</th>';});
+  html+='</tr></thead><tbody>';
+  recs.forEach(function(r,i){
+    html+='<tr><td><span class="score-link" onclick="alert(\'点击型号切换基准为正式版能力（demo 占位）\')">'+r.model+'</span>'+(i===0?' <span class="tag" style="font-size:10px">基准</span>':'')+'</td><td>'+r.vendor+'</td>';
+    for(var k=0;k<4;k++){html+='<td class="sc">'+(r.s[k]/base.s[k]).toFixed(2)+'×</td>';}
+    html+='</tr>';
+  });
+  html+='</tbody></table>';
+  document.getElementById("cmp3Table").innerHTML=html;
+}
+/* ④ 单项基准程序得分对比：分组竖柱（CSS flex），横轴子项按所选套件区分（Int 12 项 / Float 10 项，PRD v0.11），每组最多 6 根柱（灰度区分），右上套件页签；柱 hover=hover内容2 字段 */
+function renderCmp4(recs){
+  suiteTabs("cmp4Tabs",cmp4Suite,function(i){cmp4Suite=i;renderCmp4(selRecs());});
+  var list=subList(cmp4Suite);
+  var mx=0;recs.forEach(function(r){subScores(r,cmp4Suite).forEach(function(v){mx=Math.max(mx,v);});});
+  var html='<div class="vgroups">';
+  list.forEach(function(name,si){
+    html+='<div class="vgroup"><div class="vbars">';
+    recs.forEach(function(r,ri){
+      var h=mx?Math.max(4,Math.round(subScores(r,cmp4Suite)[si]/mx*200)):0;
+      html+='<div class="vbar" style="height:'+h+'px;background:'+GRAY[ri]+'" hovercard="'+r.id+'" aria-label="'+r.model+' '+name+' 柱"></div>';
+    });
+    html+='</div><div class="vname">'+name+'</div></div>';
+  });
+  html+='</div>';
+  document.getElementById("cmp4Chart").innerHTML=html;
+  document.getElementById("cmp4Legend").innerHTML=recs.map(function(r,ri){return '<span>'+dotHtml(ri)+r.model+'（'+r.vendor+'）</span>';}).join("");
+}
+/* 对比区图表页签切换（JS） */
+document.querySelectorAll("[data-cv]").forEach(function(b){
+  b.addEventListener("click",function(){
+    document.querySelectorAll("[data-cv]").forEach(function(x){x.classList.toggle("active",x===b);});
+    ["1","2","3","4"].forEach(function(v){document.getElementById("cmp"+v).style.display=(v===b.dataset.cv)?"block":"none";});
+  });
+});
+
+/* ==================== CPUBench 楼层4：测试记录表（无对比列，13 条，每页 10 条，翻页器真实可用） ==================== */
+var CPU_RECS=CPU.slice(0,13),cpuPage=1,PER=10;
+function renderCpuTable(){
+  var tb=document.getElementById("cpuRecBody"),html="";
+  CPU_RECS.forEach(function(r,i){
+    var sc=r.s.map(function(v){return '<td><a class="score-link" onclick="alert(\'查看原始报告 PDF\')">'+v.toFixed(1)+'</a></td>';}).join("");
+    html+='<tr data-i="'+i+'"'+((i>=(cpuPage-1)*PER&&i<cpuPage*PER)?'':' style="display:none"')+'>'
+      +'<td>'+(i+1)+'</td><td>'+r.unit+'</td><td>'+r.vendor+'</td><td>'+r.model+'</td><td>'+r.cpu+'</td>'+sc
+      +'<td><button class="btn ghost" onclick="openCpuModal('+r.id+')">详细报告</button></td></tr>';
+  });
+  tb.innerHTML=html;
+  renderPager("cpuPager",CPU_RECS.length,cpuPage,cpuGoPage);
+}
+function cpuGoPage(p){
+  cpuPage=p;
+  document.querySelectorAll("#cpuRecBody tr").forEach(function(tr){
+    var i=+tr.dataset.i;tr.style.display=(i>=(p-1)*PER&&i<p*PER)?"":"none";
+  });
+  renderPager("cpuPager",CPU_RECS.length,p,cpuGoPage);
+}
+function renderPager(pid,total,cur,fn){
+  var pages=Math.ceil(total/PER),box=document.getElementById(pid),html="";
+  html+='<button class="pg-btn" data-p="prev"'+(cur<=1?" disabled":"")+' aria-label="上一页">上一页</button>';
+  for(var i=1;i<=pages;i++){html+='<button class="pg-btn'+(i===cur?" active":"")+'" data-p="'+i+'" aria-label="第'+i+'页"'+(i===cur?' aria-current="page"':'')+'>'+i+'</button>';}
+  html+='<button class="pg-btn" data-p="next"'+(cur>=pages?" disabled":"")+' aria-label="下一页">下一页</button>';
+  html+='<span class="pg-note">共 '+total+' 条 · 每页 '+PER+' 条 · 第 '+cur+'/'+pages+' 页</span>';
+  box.innerHTML=html;
+  box.querySelectorAll(".pg-btn").forEach(function(b){
+    b.addEventListener("click",function(){
+      if(b.disabled)return;
+      var p=b.dataset.p==="prev"?cur-1:b.dataset.p==="next"?cur+1:+b.dataset.p;
+      if(p>=1&&p<=pages)fn(p);
+    });
+  });
+}
+renderCpuTable();
+
+/* ==================== CPUBench 楼层5：详情弹层（九分区，字段不得合并/增加/删除） ==================== */
+var cpuModal=document.getElementById("cpuModal");
+function kvRow(k,v){return '<tr><td>'+k+'</td><td>'+v+'</td></tr>';}
+function openCpuModal(id){
+  var r=CPU[id-1];
+  document.getElementById("cpuMTitle").textContent=r.model;
+  document.getElementById("cpuMSub").textContent=r.vendor+" · "+r.cpu+" · Socket："+r.socket;
+  var parallel=[1,1,512,512];
+  document.getElementById("cpuMScore").innerHTML=SUITES.map(function(s,i){
+    return '<div class="scard"><div class="nm">'+dotHtml(i)+s[0]+' '+s[1]+'</div><div class="val">'+r.s[i].toFixed(1)+'</div><div class="sub">并行任务 '+parallel[i]+'</div></div>';
+  }).join("");
+  var g1=Math.pow(r.s[0]*r.s[1],0.5),g2=Math.pow(r.s[2]*r.s[3],0.5),ratio=(r.s[2]/r.s[0]);
+  document.getElementById("cpuMDerived").innerHTML=
+    '<div class="scard"><div class="nm">单核综合（几何均值）</div><div class="val">'+g1.toFixed(1)+'</div></div>'
+    +'<div class="scard"><div class="nm">并发综合（几何均值）</div><div class="val">'+g2.toFixed(1)+'</div></div>'
+    +'<div class="scard"><div class="nm">多核扩展倍率</div><div class="val">'+ratio.toFixed(2)+'×</div></div>';
+  document.getElementById("cpuMPart").textContent="CPUBench-v1.3（含之前版本） · 服务器产品";
+  document.getElementById("cpuMFolder").innerHTML=
+    kvRow("测试单位（目录）",r.unit)
+    +kvRow("整机厂商（目录名）",r.vendor)
+    +kvRow("整机型号（目录名）",r.model)
+    +kvRow("处理器型号（目录名）",r.cpu)
+    +kvRow("Socket 数量（目录名）",r.socket+"S")
+    +kvRow("最后一级目录名","result_"+r.date.slice(0,10).replace(/-/g,""))
+    +kvRow("结果目录时间（取最晚，来源：result 目录名）",r.date)
+    +kvRow("该记录 result 目录（2 个）","result_20260508 / result_20260506");
+  document.getElementById("cpuMHw").innerHTML=
+    kvRow("架构",r.arch)
+    +kvRow("硬件插槽数/每路核数",r.socket+" 路 / "+(r.cpu.indexOf("32C")>=0?"32":r.cpu.indexOf("40C")>=0?"40":"64")+" 核")
+    +kvRow("总线程数/NUMA 节点",(r.cpu.indexOf("64T")>=0?"128":r.cpu.indexOf("80T")>=0?"160":"64")+" 线程 / "+(r.socket*2)+" 节点")
+    +kvRow("主频","2.80 GHz（基频）/ 3.50 GHz（加速）")
+    +kvRow("内存","512 GB DDR4-3200（16 × 32 GB）")
+    +kvRow("L1/L2/L3 缓存","2 MB / 16 MB / 128 MB")
+    +kvRow("操作系统","openEuler 22.03 LTS")
+    +kvRow("文件系统","ext4")
+    +kvRow("硬件厂商（报告）",r.vendor)
+    +kvRow("BIOS 型号名称",r.vendor+" BIOS v5.23");
+  document.getElementById("cpuMReport").innerHTML=
+    kvRow("测试日期（报告）",r.date.slice(0,10))
+    +kvRow("报告编号","CPUB-2026-"+String(1000+r.id))
+    +kvRow("测试套件版本","v1.3")
+    +kvRow("本记录测试项","Int 套件（IntSingle/IntConcurrent）12 项：x264 / gcc / gzip / tpcc / tpch / kmeans / wordcount / velvet / openssl / rapidjson / python / xz；Float 套件（FloatSingle/FloatConcurrent）10 项：lightgbm / nektar / phenglei / phyml / gromacs / povray / openfoam / lammps / cube / wrf");
+  /* 分区8 优化编译参数组：按套件区分语言分组（Int 套件 12 项 / Float 套件 10 项，PRD v0.11） */
+  var paramSets={
+    "Int 套件（IntSingle / IntConcurrent，12 项）":{
+      "C":["x264","gzip","velvet","openssl","python","xz"],
+      "C++":["gcc","tpcc","tpch","rapidjson"],
+      "Java":["kmeans","wordcount"]
+    },
+    "Float 套件（FloatSingle / FloatConcurrent，10 项）":{
+      "C":["phyml","gromacs","cube","wrf"],
+      "C++":["lightgbm","nektar","phenglei","gromacs","povray","openfoam","lammps"],
+      "Fortran":["wrf"]
+    }
+  };
+  var langHtml="";
+  Object.keys(paramSets).forEach(function(cap){
+    langHtml+='<p class="note" style="margin:8px 0 4px"><b>'+cap+'</b></p>';
+    Object.keys(paramSets[cap]).forEach(function(lang){
+      langHtml+='<div class="lang-grid"><div class="lname"><b>'+lang+'</b>子项：'+paramSets[cap][lang].join("、")+'</div>'
+        +'<pre><code>-O3 -march=native -fopenmp \\\n-DNDEBUG -funroll-loops \\\n-I./include -L./lib -lbench</code></pre></div>';
+    });
+  });
+  document.getElementById("cpuMLang").innerHTML=langHtml;
+  document.getElementById("cpuMLegend").innerHTML=SUITES.map(function(s,i){return '<span>'+dotHtml(i)+s[0]+' '+s[1]+'</span>';}).join("");
+  /* 分区9 各测试子项得分图：横轴子项按套件区分呈现（Int 12 项 / Float 10 项，PRD v0.11） */
+  var bars="";
+  [["Int 套件子项（IntSingle / IntConcurrent）",r.sub],["Float 套件子项（FloatSingle / FloatConcurrent）",r.subF]].forEach(function(g){
+    var mx=0;g[1].forEach(function(v){mx=Math.max(mx,v);});
+    bars+='<p class="note" style="margin:8px 0 4px"><b>'+g[0]+'</b></p><div class="vgroups">';
+    g[1].forEach(function(v,si){
+      var name=(g[1]===r.sub?SUBS.int:SUBS.float)[si];
+      bars+='<div class="vgroup"><div class="vbars"><div class="vbar" style="height:'+Math.round(v/mx*180)+'px;background:#4a5058" aria-label="'+name+' 得分 '+v+'"></div></div><div class="vname">'+name+'<br><b>'+v.toFixed(1)+'</b></div></div>';
+    });
+    bars+='</div>';
+  });
+  document.getElementById("cpuMBar").innerHTML=bars;
+  cpuModal.classList.add("open");
+}
+function bindModal(modal){
+  modal.querySelector(".mclose").addEventListener("click",function(){modal.classList.remove("open");});
+  modal.addEventListener("click",function(e){if(e.target===modal)modal.classList.remove("open");});
+}
+bindModal(cpuModal);
+
+/* ==================== AISBench 楼层2：筛选器（模型单选+搜索、芯片多选全选、上下文单选、精度多选全选） ==================== */
+var AIS_MODELS=["DeepSeek R1","DeepSeek V4 Pro","DeepSeek V4 Flash","Kimi K3","GLM5.2","Qwen3 32B"];
+var aisModel="DeepSeek R1";
+var modelList=document.getElementById("aisModelList");
+function renderModelList(){
+  var kw=document.getElementById("aisModelSearch").value.trim().toLowerCase();
+  var html="";
+  AIS_MODELS.forEach(function(m){
+    if(kw&&m.toLowerCase().indexOf(kw)<0)return;
+    html+='<label style="white-space:nowrap"><input type="radio" name="aisModel" value="'+m+'"'+(m===aisModel?" checked":"")+' aria-label="模型 '+m+'"> '+m+'</label>';
+  });
+  modelList.innerHTML=html||'<p class="note">无匹配模型</p>';
+  modelList.querySelectorAll("input").forEach(function(inp){
+    inp.addEventListener("change",function(){
+      aisModel=inp.value;
+      document.getElementById("aisModelLabel").textContent=aisModel;
+      aisApply();
+    });
+  });
+}
+document.getElementById("aisModelSearch").addEventListener("input",renderModelList);
+renderModelList();
+function chipName(c){return c[0]+" "+c[1]+" ("+c[2]+")";}
+var chipPanel=document.getElementById("aisChipPanel");
+chipPanel.innerHTML=CHIP_AIS.map(function(c){return '<label><input type="checkbox" value="'+chipName(c)+'" checked> '+chipName(c)+'</label>';}).join("")+'<button type="button" class="fdd-clear">清除选择</button>';
+var precPanel=document.getElementById("aisPrecPanel");
+precPanel.innerHTML=["BF16","FP8","INT8","FP16"].map(function(p){return '<label><input type="checkbox" value="'+p+'" checked> '+p+'</label>';}).join("")+'<button type="button" class="fdd-clear">清除选择</button>';
+document.getElementById("aisCtxSel").addEventListener("change",function(){
+  document.getElementById("aisCtxLabel").textContent=this.value;aisApply();
+});
+[chipPanel,precPanel].forEach(function(p){p.addEventListener("change",aisApply);});
+function aisFiltered(){
+  var chips=[],precs=[];
+  chipPanel.querySelectorAll("input:checked").forEach(function(c){chips.push(c.value);});
+  precPanel.querySelectorAll("input:checked").forEach(function(c){precs.push(c.value);});
+  var ctx=document.getElementById("aisCtxSel").value;
+  return AIS.filter(function(r){
+    var cn=r.vendor+" "+r.acc+" ("+r.fw+")";
+    if(r.model!==aisModel)return false;
+    if(chips.length&&chips.indexOf(cn)<0)return false;
+    if(precs.length&&precs.indexOf(r.prec)<0)return false;
+    if(r.ctx!==ctx)return false;
+    return true;
+  });
+}
+
+/* ==================== AISBench 楼层3：三个对比折线图（内联 SVG，折线数量不限，每线 4 节点=并发 1/8/16/32） ==================== */
+var aisView=0;
+var AIS_VIEWS=[
+  {xl:"输出吞吐 tokens/s",yl:"输出吞吐/并发数",yi:"y0"},
+  {xl:"输出吞吐 tokens/s",yl:"TTFT P90（ms）",yi:"y1"},
+  {xl:"输出吞吐 tokens/s",yl:"E2EL P90（ms）",yi:"y2"}
+];
+document.querySelectorAll("[data-av]").forEach(function(b){
+  b.addEventListener("click",function(){
+    aisView=+b.dataset.av;
+    document.querySelectorAll("[data-av]").forEach(function(x){x.classList.toggle("active",x===b);});
+    renderAisChart();
+  });
+});
+function renderAisChart(){
+  var recs=aisFiltered(),v=AIS_VIEWS[aisView];
+  document.getElementById("aisAxisNote").textContent="横轴="+v.xl+"；纵轴="+v.yl+"；每条折线=一条提交记录（折线数量不限），节点=并发 1/8/16/32。正式版：线可点击突出、节点可点击跳转对应表格行。";
+  var box=document.getElementById("aisChart"),leg=document.getElementById("aisLegend");
+  if(!recs.length){box.innerHTML='<p class="note">当前筛选组合无命中记录，请调整筛选器。</p>';leg.innerHTML="";return;}
+  var W=1040,H=380,L=80,Rp=30,T=24,B=52;
+  var xmax=0,ymax=0;
+  recs.forEach(function(r){r.x.forEach(function(x){xmax=Math.max(xmax,x);});r[v.yi].forEach(function(y){ymax=Math.max(ymax,y);});});
+  function px(x){return L+(W-L-Rp)*x/(xmax*1.05);}
+  function py(y){return T+(H-T-B)*(1-y/(ymax*1.1));}
+  var s='<svg width="'+W+'" height="'+H+'" viewBox="0 0 '+W+' '+H+'" role="img" aria-label="AISBench 对比折线图">';
+  s+='<line x1="'+L+'" y1="'+(H-B)+'" x2="'+(W-Rp)+'" y2="'+(H-B)+'" stroke="#8a919c"/><line x1="'+L+'" y1="'+T+'" x2="'+L+'" y2="'+(H-B)+'" stroke="#8a919c"/>';
+  for(var k=0;k<=4;k++){
+    var yv=ymax*1.1*k/4,yy=py(yv);
+    s+='<line x1="'+L+'" y1="'+yy.toFixed(1)+'" x2="'+(W-Rp)+'" y2="'+yy.toFixed(1)+'" stroke="#eef0f2"/>'
+      +'<text x="'+(L-8)+'" y="'+(yy+4).toFixed(1)+'" text-anchor="end" font-size="11" fill="#8a919c">'+Math.round(yv)+'</text>';
+    var xv=xmax*1.05*k/4;
+    s+='<text x="'+px(xv).toFixed(1)+'" y="'+(H-B+18)+'" text-anchor="middle" font-size="11" fill="#8a919c">'+Math.round(xv)+'</text>';
+  }
+  s+='<text x="'+((L+W-Rp)/2)+'" y="'+(H-8)+'" text-anchor="middle" font-size="12" fill="#2b2f33">'+v.xl+'</text>';
+  s+='<text x="16" y="'+((T+H-B)/2)+'" text-anchor="middle" font-size="12" fill="#2b2f33" transform="rotate(-90 16 '+((T+H-B)/2)+')">'+v.yl+'</text>';
+  recs.forEach(function(r,ri){
+    var col=GRAY[ri%GRAY.length];
+    var pts=CONC.map(function(c,i){return [px(r.x[i]),py(r[v.yi][i]),i];});
+    s+='<polyline points="'+pts.map(function(p){return p[0].toFixed(1)+","+p[1].toFixed(1);}).join(" ")+'" fill="none" stroke="'+col+'" stroke-width="2"/>';
+    pts.forEach(function(p,i){
+      var tipAttr='ais-tip="'+encodeURIComponent(JSON.stringify({d:r.date,x:r.x[i],y:r[v.yi][i],xl:v.xl,yl:v.yl,cards:r.cards,c:CONC[i],prec:r.prec}))+'"';
+      s+='<circle cx="'+p[0].toFixed(1)+'" cy="'+p[1].toFixed(1)+'" r="5" fill="#fff" stroke="'+col+'" stroke-width="2" '+tipAttr+' style="cursor:pointer" aria-label="节点 并发'+CONC[i]+'"></circle>';
+    });
+  });
+  s+='</svg>';
+  box.innerHTML=s;
+  leg.innerHTML=recs.map(function(r,ri){return '<span>'+dotHtml(ri%GRAY.length)+r.vendor+' '+r.sys+' · '+r.fw+' · '+r.prec+'（'+r.date+'）</span>';}).join("");
+  /* 节点 hover 信息卡 6 字段：提交日期/横轴数值/纵轴数值/总芯片卡数/并发数/数据精度 */
+  box.querySelectorAll("[ais-tip]").forEach(function(c){
+    c.addEventListener("mouseover",function(e){
+      var d=JSON.parse(decodeURIComponent(c.getAttribute("ais-tip")));
+      showTip('<b>提交日期：</b>'+d.d+'<br><b>'+d.xl+'：</b>'+d.x
+        +'<br><b>'+d.yl+'：</b>'+d.y+'<br><b>总芯片卡数：</b>'+d.cards
+        +'<br><b>并发数：</b>'+d.c+'<br><b>数据精度：</b>'+d.prec,e.pageX,e.pageY);
+    });
+    c.addEventListener("mouseout",hideTip);
+  });
+}
+/* AISBench 楼层4：测试记录表（12 条，每页 10 条，翻页器真实可用） */
+var aisPage=1;
+function renderAisTable(){
+  var tb=document.getElementById("aisRecBody"),html="";
+  AIS.forEach(function(r,i){
+    html+='<tr data-i="'+i+'"'+((i>=(aisPage-1)*PER&&i<aisPage*PER)?'':' style="display:none"')+'>'
+      +'<td>'+r.vendor+'</td><td>'+r.sys+'</td><td>'+r.model+'</td><td>'+r.date+'</td><td>'+r.acc+'</td><td>'+r.fw+'</td><td>'+r.prec+'</td><td>'+r.ctx+'</td>'
+      +'<td><button class="btn ghost" onclick="openAisModal('+i+')">查看</button></td></tr>';
+  });
+  tb.innerHTML=html;
+  renderPager("aisPager",AIS.length,aisPage,aisGoPage);
+}
+function aisGoPage(p){
+  aisPage=p;
+  document.querySelectorAll("#aisRecBody tr").forEach(function(tr){
+    var i=+tr.dataset.i;tr.style.display=(i>=(p-1)*PER&&i<p*PER)?"":"none";
+  });
+  renderPager("aisPager",AIS.length,p,aisGoPage);
+}
+renderAisTable();
+
+/* AISBench 详情弹层：表1 基础信息汇总三组（总览7行/硬件7行/软件5行）+ 表2 测试数据（10 指标 × 并发 1/8/16/32） */
+var aisModal=document.getElementById("aisModal");
+function openAisModal(i){
+  var r=AIS[i];
+  document.getElementById("aisMTitle").textContent=r.vendor+" "+r.sys+" · "+r.model;
+  document.getElementById("aisMSub").textContent="提交日期 "+r.date+" · "+r.fw+" · "+r.prec+" · 上下文 "+r.ctx;
+  document.getElementById("aisMOv").innerHTML=
+    kvRow("模型",r.model)
+    +kvRow("数据格式精度",r.prec)
+    +kvRow("数据集","AISBench 标准推理数据集 v2（占位）")
+    +kvRow("上下文长度",r.ctx)
+    +kvRow("提交者（厂商名字）",r.vendor)
+    +kvRow("提交地址（链接）",'<a href="javascript:void(0)" onclick="alert(\'提交记录地址（占位链接）\')">https://repo.example.com/aisbench/records/'+(1000+i)+'</a>')
+    +kvRow("提交日期",r.date);
+  document.getElementById("aisMHw").innerHTML=
+    kvRow("系统名",r.sys)
+    +kvRow("节点数",(r.cards>=64?"2":"1")+" 节点")
+    +kvRow("Processor(CPU)型号*每节点数量","Intel Xeon Platinum 8380(40C-80T) × 2")
+    +kvRow("核数/Processor","80 核 / 每路 40 核")
+    +kvRow("Accelerator型号*每节点数量",r.acc+" × "+(r.cards/(r.cards>=64?2:1)))
+    +kvRow("显存","单卡 288 GB HBM4（占位）")
+    +kvRow("网络/互联","400 Gb/s RDMA（占位）");
+  document.getElementById("aisMSw").innerHTML=
+    kvRow("驱动",r.vendor+" 驱动 v24.3（占位）")
+    +kvRow("操作系统","openEuler 22.03 LTS")
+    +kvRow("推理框架/引擎",r.fw+"（引擎版本占位）")
+    +kvRow("推理优化","KV-Cache 复用 + 连续批处理（占位）")
+    +kvRow("策略","吞吐优先（占位）");
+  var rows=AIS_METRICS.map(function(m,mi){
+    var cells=CONC.map(function(c,ci){
+      var v;
+      if(mi===0)v=r.x[ci];
+      else if(mi===1)v=Math.round(r.x[ci]/r.cards);
+      else if(mi===2)v=Math.round(r.y1[ci]*0.8);
+      else if(mi===3)v=r.y1[ci];
+      else if(mi===4)v=Math.round(28+ci*12);
+      else if(mi===5)v=Math.round(45+ci*20);
+      else if(mi===6)v=Math.round(r.y2[ci]*0.8);
+      else if(mi===7)v=r.y2[ci];
+      else if(mi===8)v=200*c;
+      else v=(r.x[ci]/(r.y2[ci]/1000)).toFixed(1);
+      return '<td class="sc">'+v+'</td>';
+    }).join("");
+    return '<tr><td>'+m+'</td>'+cells+'</tr>';
+  }).join("");
+  document.getElementById("aisMData").innerHTML=rows;
+  aisModal.classList.add("open");
+}
+bindModal(aisModal);
+/* 筛选联动：命中条数 + 折线图重绘（楼层2 → 楼层3） */
+function aisApply(){
+  var n=aisFiltered().length;
+  document.getElementById("aisHit").textContent="命中 "+n+" 条记录";
+  renderAisChart();
+}
+
+/* ==================== 活动日历组件（首页楼层2 与活动页 tab1 共用；参照 活动日历.jpg 内容结构） ==================== */
+var TODAY="2026-10-27";
+function pad2(n){return (n<10?"0":"")+n;}
+function initCal(root){
+  var state={y:2026,m:10,type:"全部",sel:null};
+  var label=root.querySelector(".m-label");
+  var daysBox=root.querySelector(".cal-days");
+  var evList=root.querySelector(".cal-ev-list");
+  var panel=root.querySelector(".cal-panel");
+  function evByDate(d){return EVENTS.filter(function(e){return e.d===d&&(state.type==="全部"||e.type===state.type);});}
+  function renderMonth(){
+    label.textContent=state.y+" 年 "+state.m+" 月";
+    var first=new Date(state.y,state.m-1,1);
+    var startDow=first.getDay();
+    var html="",cells=42;
+    for(var i=0;i<cells;i++){
+      var dt=new Date(state.y,state.m-1,1-startDow+i);
+      var y=dt.getFullYear(),m=dt.getMonth()+1,d=dt.getDate();
+      var ds=y+"-"+pad2(m)+"-"+pad2(d);
+      var other=(m!==state.m);
+      var evs=evByDate(ds);
+      var cls="cal-cell"+(other?" other":"")+((i+1)%7===0?" odd":"")+(ds===TODAY?" today":"")+(evs.length?" has":"")+(state.sel===ds?" selday":"");
+      var dots=evs.map(function(e){return '<span class="cal-dot" style="background:'+(TYPE_COLOR[e.type]||"#8C959D")+'" title="'+e.type+'"></span>';}).join("");
+      html+='<div class="'+cls+'" data-d="'+ds+'"'+(evs.length?' role="button" tabindex="0" aria-label="'+ds+' 有 '+evs.length+' 个事件"':'')+'>'+d+(dots?'<div class="cal-dots">'+dots+'</div>':'')+'</div>';
+    }
+    daysBox.innerHTML=html;
+    daysBox.querySelectorAll(".cal-cell.has").forEach(function(c){
+      c.addEventListener("click",function(){state.sel=c.dataset.d;renderMonth();renderPanel();});
+      c.addEventListener("keydown",function(e){if(e.key==="Enter"||e.key===" "){e.preventDefault();c.click();}});
+    });
+  }
+  function renderPanel(){
+    var d=state.sel||TODAY;
+    var evs=evByDate(d);
+    if(!evs.length){
+      evList.innerHTML='';
+      panel.innerHTML='<p class="none">'+d+' 暂无'+(state.type==="全部"?"":(" "+state.type))+'日程。点击月历中带圆点的日期查看事件。</p>';
+      return;
+    }
+    evList.innerHTML=evs.map(function(e,i){
+      return '<li data-i="'+i+'"'+(i===0?' class="on"':'')+'><span>'+e.title+'</span><span class="tag ghost" style="margin:0">'+e.type+'</span></li>';
+    }).join("");
+    evList.querySelectorAll("li").forEach(function(li){
+      li.addEventListener("click",function(){
+        evList.querySelectorAll("li").forEach(function(x){x.classList.remove("on");});
+        li.classList.add("on");
+        renderDetail(evs[+li.dataset.i]);
+      });
+    });
+    renderDetail(evs[0]);
+  }
+  function renderDetail(e){
+    var keys=["会议详情","发起人","会议时间","会议ID","会议平台","会议链接","会议纪要"];
+    var rows=e.det.map(function(v,i){return kvRow(keys[i],v);}).join("");
+    panel.innerHTML='<h4>'+e.title+' <span class="tag ghost" style="vertical-align:2px">'+e.type+'</span></h4>'
+      +'<div class="meta">日期范围：'+e.range+'<br>SIG 组：'+e.sig+'</div>'
+      +'<div style="margin-top:10px"><a href="javascript:void(0)" onclick="alert(\'加入会议（demo 占位）\')">加入会议 &gt;</a></div>'
+      +'<details><summary>展开明细（7 项）</summary><table class="tbl kv" style="margin-top:8px"><tbody>'+rows+'</tbody></table></details>';
+  }
+  root.querySelector(".cal-prev").addEventListener("click",function(){
+    state.m--;if(state.m<1){state.m=12;state.y--;}state.sel=null;renderMonth();renderPanel();
+  });
+  root.querySelector(".cal-next").addEventListener("click",function(){
+    state.m++;if(state.m>12){state.m=1;state.y++;}state.sel=null;renderMonth();renderPanel();
+  });
+  root.querySelectorAll(".cal-filter .ctab").forEach(function(b){
+    b.addEventListener("click",function(){
+      root.querySelectorAll(".cal-filter .ctab").forEach(function(x){x.classList.toggle("active",x===b);});
+      state.type=b.dataset.ftype;renderMonth();renderPanel();
+    });
+  });
+  state.sel=TODAY;
+  renderMonth();renderPanel();
+}
+initCal(document.getElementById("cal-home"));
+initCal(document.getElementById("cal-act"));
+
+/* ==================== 日历列表视图切换（hifloat活动日历.jpg：日历视图/列表视图 pill 切换） ==================== */
+function renderCalList(lb){
+  var types=["会议","活动","峰会"],html="";
+  types.forEach(function(t){
+    var evs=EVENTS.filter(function(e){return e.type===t;}).sort(function(a,b){return a.d<b.d?-1:1;});
+    html+='<h5>'+t+'（'+evs.length+'）</h5>';
+    html+=evs.length?'<ul>'+evs.map(function(e){return '<li><span class="d">'+e.d+'</span><a href="javascript:void(0)">'+e.title+'</a></li>';}).join("")+'</ul>':'<p class="none">暂无活动</p>';
+  });
+  lb.innerHTML=html;
+}
+document.querySelectorAll(".cal-view").forEach(function(g){
+  g.querySelectorAll("button").forEach(function(b){
+    b.addEventListener("click",function(){
+      g.querySelectorAll("button").forEach(function(x){x.classList.toggle("active",x===b);});
+      var shell=g.closest(".floor").querySelector(".cal-shell");
+      var cal=shell.querySelector(".cal"),lb=shell.querySelector(".cal-listbox");
+      var isCal=b.dataset.cv2==="cal";
+      cal.style.display=isCal?"":"none";
+      lb.style.display=isCal?"none":"";
+      if(!isCal)renderCalList(lb);
+    });
+  });
+});
+
+/* ==================== 资讯页（参照 HiFloat /zh/news：左筛选栏+右列表行，无 tab） ==================== */
+var NEWS=[
+ {tags:["新闻","产品"],title:"Benchmark 平台 CPUBench v1.3 测评工具正式发布",sum:"CPUBench v1.3 覆盖四类测试套件与 22 个单项基准程序（Int 套件 12 项 / Float 套件 10 项），首批 28 家整机厂商 156 个整机型号数据同步上线。",dt:"2026-10-24",src:"Benchmark 平台"},
+ {tags:["公告"],title:"关于平台数据对比采用 Typical 分数的说明",sum:"为保证跨记录可比性，平台数据对比统一采用 Typical 分数，不同版本与产品类别之间分数不可直接比较。",dt:"2026-10-22",src:"平台运营组"},
+ {tags:["新闻","数据"],title:"新一批整机测评数据上线：新增 3 家厂商 12 个整机型号",sum:"本批次新增新华三、超聚变、百信三家厂商共 12 个整机型号的 CPUBench 测评记录，均由第三方测试单位复核。",dt:"2026-10-20",src:"平台运营组"},
+ {tags:["公告","维护"],title:"测评数据提交通道维护公告（10 月 30 日 22:00-24:00）",sum:"提交通道将于 10 月 30 日 22:00-24:00 维护，期间暂停数据提交，浏览与下载不受影响。",dt:"2026-10-18",src:"平台运营组"},
+ {tags:["新闻","产品"],title:"AISBench 推理性能测评工具完成适配升级，支持 FP8 精度",sum:"AISBench 完成新一轮框架适配，新增 FP8 精度与 8k/8k 上下文组合测试能力，历史数据保持可对比。",dt:"2026-10-15",src:"Benchmark 平台"},
+ {tags:["公告","征集"],title:"关于征集 ClusterBench 集群测评需求的通知",sum:"征集集群测评场景与指标需求，为 ClusterBench 工具立项提供输入，欢迎各厂商与测试单位反馈。",dt:"2026-10-12",src:"SIG 测评标准组"},
+ {tags:["新闻","数据"],title:"某云计算中心完成 R4950 G5 整机 Benchmark 复测并入库",sum:"某云计算中心按统一规范完成新华三 R4950 G5 复测，四类套件分数与原始报告已入库，可在详情页查看。",dt:"2026-10-09",src:"某云计算中心"}
+];
+function renderNewsList(){
+  var kw=(document.getElementById("newsSearch").value||"").trim().toLowerCase();
+  var tEl=document.querySelector("#newsTimeChips .fchip.active"),gEl=document.querySelector("#newsTagChips .fchip.active");
+  var ty=tEl?tEl.dataset.v:"全部",tg=gEl?gEl.dataset.v:"全部";
+  var items=NEWS.filter(function(n){
+    if(ty!=="全部"&&n.dt.slice(0,4)!==ty)return false;
+    if(tg!=="全部"&&n.tags.indexOf(tg)<0)return false;
+    if(kw&&(n.title+n.sum).toLowerCase().indexOf(kw)<0)return false;
+    return true;
+  });
+  document.getElementById("newsList").innerHTML=items.length?items.map(function(n){
+    return '<a class="nrow" href="javascript:void(0)"><div class="tags">'+n.tags.map(function(t){return '<span class="tag ghost">'+t+'</span>';}).join("")+'</div><h2>'+n.title+'</h2><div class="sum">'+n.sum+'</div><div class="dt">'+n.dt+' · 来源：'+n.src+'</div></a>';
+  }).join(""):'<p class="note" style="padding:24px 0">未找到匹配的资讯。</p>';
+}
+function chipGroup(id,entries){
+  document.getElementById(id).innerHTML=entries.map(function(e,i){
+    return '<button class="fchip'+(i===0?" active":"")+'" data-v="'+e[0]+'">'+e[0]+'<span class="n">'+e[1]+'</span></button>';
+  }).join("");
+  document.getElementById(id).querySelectorAll(".fchip").forEach(function(b){
+    b.addEventListener("click",function(){
+      document.getElementById(id).querySelectorAll(".fchip").forEach(function(x){x.classList.toggle("active",x===b);});
+      renderNewsList();
+    });
+  });
+}
+(function(){
+  var years={},tags={};
+  NEWS.forEach(function(n){years[n.dt.slice(0,4)]=(years[n.dt.slice(0,4)]||0)+1;n.tags.forEach(function(t){tags[t]=(tags[t]||0)+1;});});
+  var yE=[["全部",NEWS.length]];Object.keys(years).sort().reverse().forEach(function(y){yE.push([y,years[y]]);});
+  var tE=[["全部",NEWS.length]];Object.keys(tags).forEach(function(t){tE.push([t,tags[t]]);});
+  chipGroup("newsTimeChips",yE);chipGroup("newsTagChips",tE);
+  document.getElementById("newsSearch").addEventListener("input",renderNewsList);
+  renderNewsList();
+})();
+
+/* ==================== 活动页：tab 切换 + 全部活动列表（参照 HiFloat /zh/news 列表式） ==================== */
+function renderActList(){
+  var kw=(document.getElementById("actSearch").value||"").trim().toLowerCase();
+  var tEl=document.querySelector("#actTimeChips .fchip.active"),gEl=document.querySelector("#actTypeChips .fchip.active");
+  var ty=tEl?tEl.dataset.v:"全部",tg=gEl?gEl.dataset.v:"全部";
+  var items=EVENTS.filter(function(e){
+    if(ty!=="全部"&&e.d.slice(0,4)!==ty)return false;
+    if(tg!=="全部"&&e.type!==tg)return false;
+    if(kw&&e.title.toLowerCase().indexOf(kw)<0)return false;
+    return true;
+  }).sort(function(a,b){return a.d<b.d?-1:1;});
+  document.getElementById("actList").innerHTML=items.length?items.map(function(e){
+    return '<a class="nrow" href="javascript:void(0)"><div class="tags"><span class="tag ghost">'+e.type+'</span></div><h2>'+e.title+'</h2><div class="sum">'+e.det[0]+'</div><div class="dt">'+e.range+' · '+e.sig+'</div></a>';
+  }).join(""):'<p class="note" style="padding:24px 0">未找到匹配的活动。</p>';
+}
+function actChipGroup(id,entries){
+  document.getElementById(id).innerHTML=entries.map(function(e,i){
+    return '<button class="fchip'+(i===0?" active":"")+'" data-v="'+e[0]+'">'+e[0]+'<span class="n">'+e[1]+'</span></button>';
+  }).join("");
+  document.getElementById(id).querySelectorAll(".fchip").forEach(function(b){
+    b.addEventListener("click",function(){
+      document.getElementById(id).querySelectorAll(".fchip").forEach(function(x){x.classList.toggle("active",x===b);});
+      renderActList();
+    });
+  });
+}
+(function(){
+  var years={},types={};
+  EVENTS.forEach(function(e){years[e.d.slice(0,4)]=(years[e.d.slice(0,4)]||0)+1;types[e.type]=(types[e.type]||0)+1;});
+  var yE=[["全部",EVENTS.length]];Object.keys(years).sort().reverse().forEach(function(y){yE.push([y,years[y]]);});
+  var tE=[["全部",EVENTS.length]];Object.keys(types).forEach(function(t){tE.push([t,types[t]]);});
+  actChipGroup("actTimeChips",yE);actChipGroup("actTypeChips",tE);
+  document.getElementById("actChips").innerHTML=Object.keys(types).map(function(t){return '<span>'+t+' '+types[t]+'</span>';}).join("");
+  document.getElementById("actSearch").addEventListener("input",renderActList);
+  renderActList();
+})();
+document.querySelectorAll("[data-at]").forEach(function(b){
+  b.addEventListener("click",function(){
+    document.querySelectorAll("[data-at]").forEach(function(x){x.classList.toggle("active",x===b);});
+    document.getElementById("actPane1").style.display=(b.dataset.at==="1")?"block":"none";
+    document.getElementById("actPane2").style.display=(b.dataset.at==="2")?"block":"none";
+  });
+});
+
+/* ==================== ClusterBench 楼层2/3（PRD-007.2/007.3，v0.9）：筛选器（多选+下拉内搜索，与 CPUBench 同规格）+ 场景案例卡片（不可点击，纯展示） ==================== */
+var CLUSTER=[
+ {scene:"大模型训练", vendor:"华为", title:"Atlas 800I A2 超节点 64 卡 DeepSeek R1 训练评测", effect:"64 卡集群下 DeepSeek R1 训练吞吐达到对标基线的 92%，跨节点通信占比 18%，训练任务 7×24 稳定运行 14 天无中断", date:"2026-09-25"},
+ {scene:"大模型推理", vendor:"Nvidia", title:"DGX GB300 NVL72 集群大模型推理并发评测", effect:"72 卡集群在 32 并发下输出吞吐 21,000 tokens/s，TTFT P90 控制在 1.15s 内，满足在线推理时延要求", date:"2026-10-03"},
+ {scene:"大模型推理", vendor:"寒武纪", title:"MLU590 集群 INT8 推理成本效益评测", effect:"32 卡集群 INT8 精度下单卡吞吐较 FP16 提升 48%，单位推理成本下降约三成，适合批量离线场景", date:"2026-10-11"},
+ {scene:"大数据分析", vendor:"浪潮", title:"R5300 集群 TPC-H 大数据分析评测", effect:"8 节点集群完成 TPC-H 1TB 全部 22 条查询，整体耗时较单节点线性扩展系数 0.86，验证超节点内存互联收益", date:"2026-10-16"},
+ {scene:"高性能计算", vendor:"华为", title:"Chaoqiang 超节点 HPC 流体力学仿真评测", effect:"CFD 仿真任务在 32 节点规模下加速比 29.4×，MPI 通信延迟较传统组网下降 41%", date:"2026-10-21"},
+ {scene:"大模型训练", vendor:"浪潮", title:"R5300 G5 集群千卡级训练扩展性评测", effect:"256 卡规模下分布式训练扩展效率 88%，断点恢复耗时 45s，验证大规模训练稳定性与容错能力", date:"2026-10-26"}
+];
+function buildClusterPanel(pid,name,vals){
+  var p=document.getElementById(pid),html="";
+  html+='<input type="text" class="ov-fsearch" placeholder="在'+name+'中搜索" aria-label="在'+name+'中搜索">';
+  vals.forEach(function(v){html+='<label><input type="checkbox" value="'+v+'"> '+v+'</label>';});
+  html+='<button type="button" class="fdd-clear">清除选择</button>';
+  p.innerHTML=html;
+  p.addEventListener("change",renderCluster);
+  /* 交互：下拉内搜索过滤选项（与 CPUBench 筛选器同规格） */
+  var kw=p.querySelector(".ov-fsearch");
+  kw.addEventListener("input",function(){
+    var k=kw.value.trim().toLowerCase();
+    p.querySelectorAll("label").forEach(function(lb){
+      lb.style.display=(!k||lb.textContent.toLowerCase().indexOf(k)>=0)?"":"none";
+    });
+  });
+}
+buildClusterPanel("c-scene","应用场景",uniq(CLUSTER.map(function(r){return r.scene;})));
+buildClusterPanel("c-vendor","厂商",uniq(CLUSTER.map(function(r){return r.vendor;})));
+function updateClusterBtns(){
+  document.querySelectorAll("#clusterFilters .fdd").forEach(function(dd){
+    var btn=dd.querySelector(".fdd-btn"),name=btn.dataset.name;
+    var n=dd.querySelectorAll("input[type=checkbox]:checked").length;
+    btn.textContent=n?(name+"：已选 "+n+" 项"):name;
+  });
+}
+function clusterPass(r){
+  var f=[["c-scene",r.scene],["c-vendor",r.vendor]];
+  for(var i=0;i<f.length;i++){var v=checkedVals(f[i][0]);if(v.length&&v.indexOf(f[i][1])<0)return false;}
+  return true;
+}
+/* PRD-007.3 案例卡片：应用场景标签+标题+厂商+应用效果摘要+时间；卡片不可点击（纯展示） */
+function renderCluster(){
+  var box=document.getElementById("clusterCards"),html="",n=0;
+  CLUSTER.forEach(function(r){
+    if(!clusterPass(r))return;
+    n++;
+    html+='<div class="card">'
+      +'<div class="card-b">'
+      +'<div><span class="tag ghost">'+r.scene+'</span></div>'
+      +'<div class="card-t">'+r.title+'</div>'
+      +'<span class="gray">厂商：'+r.vendor+'</span>'
+      +'<div class="card-sum">应用效果：'+r.effect+'</div>'
+      +'<div class="card-meta"><span>'+r.date+'</span><span class="note">纯展示卡片（不可点击）</span></div>'
+      +'</div></div>';
+  });
+  box.innerHTML=html||'<p class="note" style="padding:12px 0">当前筛选条件无命中案例，请调整筛选器。</p>';
+  document.getElementById("clusterHit").textContent=n;
+  updateClusterBtns();
+}
+
+/* ==================== 初始化 ==================== */
+renderOvSuiteTabs();
+renderOverview();
+aisApply();
+renderCluster();
+go("home");
+</script>
+</body>
+</html>
