@@ -1165,7 +1165,7 @@ function renderPager(pid,total,cur,fn){
 function openCpuModal(id){
   var r=CPU[id-1];
   document.getElementById("cpuMTitle").textContent=r.model;
-  document.getElementById("cpuMSub").textContent=r.vendor+" · "+r.cpu+" · Socket："+r.socket;
+  document.getElementById("cpuMSub").textContent=r.vendor+" · "+r.cpu; // v0.28：删除 Socket 信息
   var parallel=[1,1,512,512];
   document.getElementById("cpuMScore").innerHTML=SUITES.map(function(s,i){
     return '<div class="scard"><div class="nm">'+dotHtml(i)+s[0]+' '+s[1]+'</div><div class="val">'+r.s[i].toFixed(1)+'</div><div class="sub">并行任务 '+parallel[i]+'</div></div>';
@@ -1176,7 +1176,7 @@ function openCpuModal(id){
     +kvRow("处理器型号",r.cpu)+kvRow("测试时间",r.date);
   document.getElementById("cpuMHw").innerHTML=
     kvRow("架构",r.arch)
-    +kvRow("Socket(s)/cores per Socket",r.socket+" 路 / "+(r.cpu.indexOf("32C")>=0?"32":r.cpu.indexOf("40C")>=0?"40":"64")+" 核")
+    +kvRow("Socket(s)/Core(s) per socket",r.socket+" 路 / "+(r.cpu.indexOf("32C")>=0?"32":r.cpu.indexOf("40C")>=0?"40":"64")+" 核")
     +kvRow("CPU(s)/NUMA节点数",(r.cpu.indexOf("64T")>=0?"128":r.cpu.indexOf("80T")>=0?"160":"64")+" 线程 / "+(r.socket*2)+" 节点")
     +kvRow("主频","2.80 GHz（基频）/ 3.50 GHz（加速）")
     +kvRow("内存","512 GB DDR4-3200（16 × 32 GB）")
