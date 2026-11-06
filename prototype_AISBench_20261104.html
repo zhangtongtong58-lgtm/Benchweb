@@ -1,0 +1,899 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AISBench · AI 推理性能测评工具</title>
+<style>
+/* ==================== HiFloat 设计 Token（沿用 GCC 站） ==================== */
+:root{
+  --color-primary:#0869DA;--color-primary-hover:#0A5CC0;--color-primary-active:#0B4FA6;
+  --color-bg:#FFFFFF;--color-bg-section:#F5F6F7;--color-bg-control:#F0F2F4;
+  --color-border:#D9DDE2;--color-border-dark:#C3C8CF;
+  --color-text-1:#020914;--color-text-2:#353E47;--color-text-3:#67707A;--color-text-4:#8C959D;
+  --font-main:'HarmonyOS Sans SC','Inter','PingFang SC','Microsoft YaHei',sans-serif;
+  --font-code:'JetBrains Mono','SFMono-Regular','Consolas',monospace;
+  --fs-tip2:12px;--fs-tip:13px;--fs-text1:14px;--fs-text:16px;
+  --fs-h5:18px;--fs-h4:20px;--fs-h3:24px;--fs-h2:32px;--fs-h1:40px;
+  --fw-bold:700;--fw-medium:500;
+  --radius-control:4px;--radius-card:8px;--radius-pill:999px;
+  --duration-s:.2s;--shadow-2:0 8px 24px rgba(2,9,20,.08);
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font:var(--fs-text1)/1.6 var(--font-main);color:var(--color-text-2);background:var(--color-bg)}
+a{color:var(--color-primary);text-decoration:none}
+button{font-family:inherit}
+.wrap{max-width:1200px;margin:0 auto;padding:0 24px}
+.mono{font-family:var(--font-code)}
+.badge{font:500 var(--fs-tip)/18px var(--font-code);color:var(--color-primary);letter-spacing:1px}
+
+/* ==================== 顶栏（自有导航：首页/精度榜单/性能榜单/测评工具） ==================== */
+.hd{position:sticky;top:0;z-index:100;background:rgba(255,255,255,.92);backdrop-filter:blur(8px);border-bottom:1px solid var(--color-border)}
+.hd-in{max-width:1200px;margin:0 auto;padding:0 24px;height:64px;display:flex;align-items:center;justify-content:space-between}
+.logo{display:flex;align-items:baseline;gap:10px;cursor:pointer;font-weight:var(--fw-bold);font-size:var(--fs-h5);color:var(--color-text-1)}
+.logo small{font:400 var(--fs-tip2)/1 var(--font-code);color:var(--color-text-4)}
+.nav{display:flex;gap:4px}
+.nlink{background:none;border:0;font-size:var(--fs-text1);color:var(--color-text-2);padding:8px 14px;cursor:pointer;border-radius:var(--radius-control)}
+.nlink:hover,.nlink.on{color:var(--color-primary)}
+.nlink.on{font-weight:var(--fw-medium);background:rgba(8,105,218,.06)}
+
+/* ==================== 通用区块 ==================== */
+.sec{padding:56px 0;border-top:1px solid var(--color-border)}
+.sec.alt{background:var(--color-bg-section)}
+.sec-hd{display:flex;justify-content:space-between;align-items:flex-end;gap:24px;margin-bottom:32px}
+.sec-hd h2{font-size:var(--fs-h3);color:var(--color-text-1);font-weight:var(--fw-bold)}
+.ssub{font-size:var(--fs-tip);color:var(--color-text-3);margin-top:6px}
+.note{font-size:var(--fs-tip);color:var(--color-text-3)}
+.none{padding:32px;text-align:center;color:var(--color-text-4);font-size:var(--fs-tip)}
+
+/* ==================== 按钮 ==================== */
+.btn{display:inline-flex;align-items:center;justify-content:center;height:40px;padding:0 20px;border-radius:var(--radius-card);border:1px solid transparent;background:var(--color-primary);color:#fff;font-size:var(--fs-text1);cursor:pointer;transition:background var(--duration-s)}
+.btn:hover{background:var(--color-primary-hover)}
+.btn.ghost{background:transparent;border-color:var(--color-border-dark);color:var(--color-text-1)}
+.btn.ghost:hover{border-color:var(--color-primary);color:var(--color-primary)}
+.btn.outline{background:transparent;border-color:var(--color-primary);color:var(--color-primary)}
+.btn.outline:hover{background:rgba(8,105,218,.06)}
+.btn.sm{height:32px;padding:0 14px;font-size:var(--fs-tip)}
+.btn-link{background:none;border:0;color:var(--color-primary);cursor:pointer;font-size:var(--fs-text1);padding:0 8px}
+
+/* ==================== Hero（首页：左文右动图） ==================== */
+.hero{padding:80px 0 72px}
+.hero-split{display:grid;grid-template-columns:1.05fr .95fr;gap:48px;align-items:center}
+.hero h1{font-size:clamp(24px,2.7vw,32px);line-height:1.2;color:var(--color-text-1);margin:16px 0 12px;font-weight:var(--fw-bold);white-space:nowrap}
+.hero h1 em{font-style:normal;color:var(--color-primary)}
+.hero .sub{font-size:var(--fs-text);color:var(--color-text-3);max-width:560px}
+.hero-cta{display:flex;gap:12px;margin-top:28px;flex-wrap:wrap}
+.hero.mini{padding:48px 0 36px}
+.hero.mini h1{font-size:var(--fs-h2);margin:10px 0 8px}
+.hero.mini .sub{font-size:var(--fs-text1)}
+
+/* ==================== 下拉文档按钮（参照下拉按钮.jpg）与浏览榜单下拉 ==================== */
+.docdd{position:relative;display:inline-block}
+.docdd-btn{height:40px;padding:8px 20px;border-radius:var(--radius-card);border:1px solid transparent;background:var(--color-primary);color:#fff;font-size:var(--fs-text1);cursor:pointer;display:inline-flex;align-items:center;gap:8px;transition:background var(--duration-s)}
+.docdd-btn:hover{background:var(--color-primary-hover)}
+.docdd.ghost .docdd-btn{background:transparent;border-color:var(--color-border-dark);color:var(--color-text-1)}
+.docdd.ghost .docdd-btn:hover{border-color:var(--color-primary);color:var(--color-primary)}
+.docdd-btn .car{font-size:10px;transition:transform var(--duration-s)}
+.docdd.open .docdd-btn .car{transform:rotate(180deg)}
+.docdd-panel{position:absolute;top:46px;left:0;min-width:300px;background:var(--color-bg);border:1px solid var(--color-border);border-radius:var(--radius-card);box-shadow:var(--shadow-2);padding:8px;display:none;z-index:80}
+.docdd.open .docdd-panel{display:block}
+.docdd-hd{font:600 12px/18px var(--font-code);color:var(--color-text-4);letter-spacing:.8px;padding:8px 12px 6px}
+.doc-item{display:flex;align-items:center;gap:10px;width:100%;padding:10px 12px;border:0;background:none;font-size:var(--fs-text1);color:var(--color-text-1);cursor:pointer;border-radius:var(--radius-control);text-align:left}
+.doc-item:hover{background:var(--color-bg-control)}
+.doc-item .dtype{font-size:11px;padding:1px 6px;border-radius:var(--radius-control);background:var(--color-bg-control);color:var(--color-text-3)}
+.doc-item .dname{flex:1}
+.doc-item .dico{color:var(--color-text-4)}
+
+/* ==================== 筛选器下拉 ==================== */
+.filters{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+.fdd{position:relative}
+.fdd-btn{height:36px;padding:0 14px;border:1px solid var(--color-border);border-radius:var(--radius-card);background:#fff;font-size:var(--fs-text1);color:var(--color-text-1);cursor:pointer;display:inline-flex;align-items:center;gap:6px}
+.fdd-btn:hover{border-color:var(--color-primary)}
+.fdd-btn .car{font-size:10px;color:var(--color-text-4)}
+.fdd-panel{position:absolute;top:42px;left:0;min-width:230px;max-height:300px;overflow:auto;background:#fff;border:1px solid var(--color-border);border-radius:var(--radius-card);box-shadow:var(--shadow-2);padding:10px;display:none;z-index:70}
+.fdd.open .fdd-panel{display:block}
+.fdd-panel label{display:flex;align-items:center;gap:8px;padding:6px 4px;font-size:var(--fs-tip);color:var(--color-text-2);cursor:pointer}
+.fdd-search{width:100%;height:30px;border:1px solid var(--color-border);border-radius:var(--radius-control);padding:0 10px;font-size:var(--fs-tip);margin-bottom:8px}
+.fdd-clear{margin-top:6px;border:0;background:none;color:var(--color-primary);font-size:var(--fs-tip);cursor:pointer}
+.sel{height:32px;border:1px solid var(--color-border);border-radius:var(--radius-control);padding:0 8px;font-size:var(--fs-tip);width:100%}
+
+/* ==================== 页签与切换 ==================== */
+.ctabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}
+.ctabs button{height:32px;padding:0 16px;border:1px solid var(--color-border);border-radius:var(--radius-pill);background:#fff;font-size:var(--fs-tip);color:var(--color-text-2);cursor:pointer}
+.ctabs button:hover{border-color:var(--color-primary);color:var(--color-primary)}
+.ctabs button.active{background:var(--color-primary);border-color:var(--color-primary);color:#fff}
+.seg{display:flex;background:var(--color-bg-control);border-radius:var(--radius-pill);padding:3px}
+.seg button{height:30px;padding:0 16px;border:0;border-radius:var(--radius-pill);background:transparent;font-size:var(--fs-tip);color:var(--color-text-2);cursor:pointer}
+.seg button.active{background:#fff;color:var(--color-primary);font-weight:var(--fw-medium);box-shadow:0 1px 3px rgba(2,9,20,.1)}
+
+/* ==================== 图表与图例 ==================== */
+.chart-box{background:#fff;border:1px solid var(--color-border);border-radius:var(--radius-card);padding:20px 24px}
+.chart-hd{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;gap:16px}
+.chart-hd .t{font-size:var(--fs-tip);color:var(--color-text-3)}
+.legend{display:flex;gap:18px;flex-wrap:wrap;padding-top:12px;font-size:var(--fs-tip);color:var(--color-text-3)}
+.legend .dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px;vertical-align:1px}
+
+/* ==================== 表格 ==================== */
+.tblwrap{border:1px solid var(--color-border);border-radius:var(--radius-card);overflow:auto;background:#fff}
+.tbl{width:100%;border-collapse:collapse;font-size:var(--fs-tip)}
+.tbl th{background:var(--color-bg-section);color:var(--color-text-3);font-weight:var(--fw-medium);text-align:left;padding:10px 14px;border-bottom:1px solid var(--color-border);white-space:nowrap}
+.tbl td{padding:10px 14px;border-bottom:1px solid var(--color-border);color:var(--color-text-2)}
+.tbl tr:last-child td{border-bottom:0}
+.tbl tbody tr:hover{background:var(--color-bg-section)}
+.tbl.kv td:first-child{width:280px;color:var(--color-text-3);background:var(--color-bg-section)}
+.rank{display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:50%;background:var(--color-bg-control);color:var(--color-text-2);font:var(--fw-bold) var(--fs-tip)/1 var(--font-code)}
+.rank.top{background:var(--color-primary);color:#fff}
+.mname{font-weight:var(--fw-medium);color:var(--color-text-1)}
+.msub{font-size:var(--fs-tip2);color:var(--color-text-4)}
+.score-big{font:var(--fw-bold) var(--fs-h5)/1.2 var(--font-code);color:var(--color-primary)}
+.tag{display:inline-block;font-size:11px;padding:1px 8px;border-radius:var(--radius-control)}
+.tag.blue{background:rgba(8,105,218,.08);color:var(--color-primary)}
+.tag.green{background:rgba(11,177,81,.08);color:#0B8A41}
+.tag.orange{background:rgba(206,89,7,.08);color:#CE5907}
+.pager{display:flex;align-items:center;gap:6px;padding:14px 0;font-size:var(--fs-tip)}
+.pg-btn{height:30px;min-width:30px;padding:0 8px;border:1px solid var(--color-border);border-radius:var(--radius-control);background:#fff;cursor:pointer;color:var(--color-text-2)}
+.pg-btn.active{border-color:var(--color-primary);color:var(--color-primary);font-weight:var(--fw-medium)}
+.pg-btn:disabled{opacity:.4;cursor:not-allowed}
+.pg-note{color:var(--color-text-4);margin-left:8px}
+
+/* ==================== 图表模式（柱状；v0.27：模型名称竖排放入柱子内部） ==================== */
+.accchart{position:relative;height:400px;background:#fff;border:1px solid var(--color-border);border-radius:var(--radius-card);padding:28px 36px 44px 56px;overflow:hidden}
+.accgrid{position:absolute;left:56px;right:36px;top:28px;bottom:44px}
+.accgl{position:absolute;left:0;right:0;border-top:1px dashed rgba(0,0,0,.08)}
+.accgl span{position:absolute;left:-44px;top:-8px;font:11px var(--font-code);color:var(--color-text-4)}
+.accbars{position:absolute;left:0;right:0;top:0;bottom:0;display:flex;align-items:flex-end;justify-content:space-around;gap:12px}
+.accbar{position:relative;flex:1;max-width:96px;border-radius:6px 6px 0 0;transition:opacity var(--duration-s)}
+.accbar:hover{opacity:.85}
+.accbar .val{position:absolute;left:50%;transform:translateX(-50%);top:6px;font:var(--fw-bold) 13px var(--font-code);color:#fff;text-shadow:0 1px 2px rgba(0,0,0,.18)}
+/* v0.27：模型名称竖排放入柱子内部（取消柱底斜排标签） */
+.accbar .lbl{position:absolute;bottom:8px;left:50%;transform:translateX(-50%);writing-mode:vertical-rl;white-space:nowrap;font-size:11px;line-height:1;color:#fff;max-height:calc(100% - 28px);overflow:hidden}
+.accbar .ven{position:absolute;top:calc(100% + 10px);left:0;right:0;text-align:center;font-size:10px;color:var(--color-text-4)}
+.ytitle{position:absolute;left:14px;top:50%;transform:rotate(-90deg) translateX(50%);transform-origin:left top;font-size:var(--fs-tip);color:var(--color-text-3)}
+
+/* ==================== v0.26：精度测评榜单概览卡片（首页） ==================== */
+.ov-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+.ov-card{background:#fff;border:1px solid var(--color-border);border-radius:var(--radius-card);padding:18px 20px;cursor:pointer;transition:border-color var(--duration-s),box-shadow var(--duration-s)}
+.ov-card:hover{border-color:var(--color-primary);box-shadow:var(--shadow-2)}
+.ov-hd{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:8px}
+.ov-hd h3{font-size:var(--fs-text1);color:var(--color-text-1)}
+.ov-info{font-size:var(--fs-tip);color:var(--color-text-3);line-height:22px;margin-bottom:12px;min-height:44px}
+.ov-rank{border-top:1px solid var(--color-border);padding-top:10px}
+.ov-rank-item{display:flex;align-items:center;gap:10px;padding:4px 0;font-size:var(--fs-tip)}
+.ov-rank-item .no{width:20px;height:20px;border-radius:var(--radius-control);background:var(--color-bg-control);color:var(--color-text-3);display:inline-flex;align-items:center;justify-content:center;font:500 12px var(--font-code);flex:none}
+.ov-rank-item.top .no{background:var(--color-primary);color:#fff}
+.ov-rank-item .nm{flex:1;color:var(--color-text-2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ov-rank-item .sc{font:var(--fw-bold) var(--fs-tip)/1 var(--font-code);color:var(--color-primary)}
+/* v0.26：测试方法弹窗 */
+.method-link{color:var(--color-primary);text-decoration:underline;text-underline-offset:3px}
+
+/* ==================== 弹层 ==================== */
+.modal{position:fixed;inset:0;background:rgba(2,9,20,.45);display:none;align-items:flex-start;justify-content:center;padding:40px 20px;z-index:200;overflow:auto}
+.modal.open{display:flex}
+.mbox{background:#fff;border-radius:var(--radius-card);width:100%;max-width:920px;box-shadow:var(--shadow-2)}
+.mhd{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;padding:20px 24px;border-bottom:1px solid var(--color-border)}
+.mhd h3{font-size:22px;color:var(--color-text-1)}
+.mhd .sub{font-size:var(--fs-tip);color:var(--color-text-3);margin-top:4px}
+.mclose{border:0;background:none;font-size:18px;color:var(--color-text-3);cursor:pointer;padding:4px 8px}
+.mclose:hover{color:var(--color-text-1)}
+.mbody{padding:8px 24px 24px}
+.msec{padding:16px 0;border-bottom:1px solid var(--color-border)}
+.msec:last-child{border-bottom:0}
+.msec h4{font-size:var(--fs-text1);color:var(--color-text-1);margin-bottom:12px}
+
+/* ==================== hover 信息卡 ==================== */
+.hc-tip{position:fixed;z-index:300;display:none;background:#fff;border:1px solid var(--color-border);border-radius:var(--radius-card);box-shadow:var(--shadow-2);padding:12px 14px;min-width:240px;font-size:var(--fs-tip);line-height:22px;color:var(--color-text-2);pointer-events:none}
+.hc-tip .hc{font-weight:var(--fw-bold);color:var(--color-text-1)}
+.hc-tip .hc-sub{color:var(--color-text-3)}
+.hc-tip .sep{height:1px;background:var(--color-border);margin:6px 0}
+.hc-tip .dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px}
+
+/* ==================== 页脚 ==================== */
+.ft{background:var(--color-bg-section);border-top:1px solid var(--color-border);margin-top:64px}
+.ft .wrap{padding:40px 24px}
+.ft-grid{display:flex;justify-content:space-between;gap:24px;flex-wrap:wrap}
+.ft .slogan{font-size:var(--fs-tip);color:var(--color-text-4);margin-top:6px}
+.ft h5{font-size:var(--fs-tip);color:var(--color-text-3);margin-bottom:8px}
+.ft a{display:block;font-size:var(--fs-tip);color:var(--color-text-2);margin-bottom:6px}
+.ft a:hover{color:var(--color-primary)}
+.ft-bot{display:flex;justify-content:space-between;border-top:1px solid var(--color-border);margin-top:24px;padding-top:16px;font-size:var(--fs-tip2);color:var(--color-text-4)}
+
+/* ==================== AI 风格矢量动图 ==================== */
+.ai-anim{width:100%;height:auto}
+@keyframes orbit{to{transform:rotate(360deg)}}
+@keyframes orbit-r{to{transform:rotate(-360deg)}}
+@keyframes pulse{0%,100%{opacity:.35;r:5}50%{opacity:1;r:7}}
+.orbit1{animation:orbit 24s linear infinite;transform-origin:260px 210px}
+.orbit2{animation:orbit-r 36s linear infinite;transform-origin:260px 210px}
+.node{animation:pulse 3s ease-in-out infinite}
+.node.d1{animation-delay:.6s}.node.d2{animation-delay:1.2s}.node.d3{animation-delay:1.8s}.node.d4{animation-delay:2.4s}
+.flow{stroke-dasharray:6 8;animation:flowmove 1.6s linear infinite}
+@keyframes flowmove{to{stroke-dashoffset:-14}}
+</style>
+</head>
+<body>
+
+<header class="hd">
+  <div class="hd-in">
+    <div class="logo" onclick="go('home')"><span>AISBench<small>// AI INFERENCE BENCHMARK</small></span></div>
+    <nav class="nav" aria-label="站点导航">
+      <button class="nlink on" id="nav-home" onclick="go('home')">首页</button>
+      <button class="nlink" id="nav-acc" onclick="go('acc')">精度榜单</button>
+      <button class="nlink" id="nav-perf" onclick="go('perf')">性能榜单</button>
+      <a class="nlink" href="https://github.com/AISBench/benchmark" target="_blank" rel="noopener">测评工具 ↗</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+<!-- ==================== 首页：左文 + 右 AI 矢量动图 ==================== -->
+<section class="page" id="page-home">
+  <div class="hero">
+    <div class="wrap hero-split">
+      <div>
+        <span class="badge">// AI INFERENCE BENCHMARK</span>
+        <!-- v0.26：入口标题与详细描述改版；删"查看技术文档""测评工具"按钮，浏览榜单改两个并列按钮 -->
+        <h1>AISBench: <em>AI评测领域的统一标尺</em></h1>
+        <p class="sub">依托统一评测标准，全面评估AI模型、Agent与推理系统的精度、性能及综合能力，打造客观可信、可横向比较的AI能力评价与行业排名平台。</p>
+        <div class="hero-cta">
+          <!-- v0.27：两个按钮设计完全一致（同为主按钮样式） -->
+          <button class="btn" onclick="go('acc')">精度榜单</button>
+          <button class="btn" onclick="go('perf')">性能榜单</button>
+        </div>
+      </div>
+      <div>
+        <!-- AI 风格矢量动图：神经网络 + 轨道 + 数据流粒子（内联 SVG + CSS/SMIL 循环动画） -->
+        <svg class="ai-anim" viewBox="0 0 520 420" role="img" aria-label="AI 神经网络矢量动图">
+          <defs>
+            <radialGradient id="gGlow" cx="50%" cy="50%" r="50%">
+              <stop offset="0%" stop-color="rgba(8,105,218,.16)"/>
+              <stop offset="100%" stop-color="rgba(8,105,218,0)"/>
+            </radialGradient>
+            <linearGradient id="gBar" x1="0" y1="1" x2="0" y2="0">
+              <stop offset="0%" stop-color="#0869DA"/>
+              <stop offset="100%" stop-color="#1488C6"/>
+            </linearGradient>
+          </defs>
+          <circle cx="260" cy="210" r="200" fill="url(#gGlow)"/>
+          <g class="orbit1"><circle cx="260" cy="210" r="168" fill="none" stroke="#D9DDE2" stroke-dasharray="3 7"/></g>
+          <g class="orbit2"><circle cx="260" cy="210" r="128" fill="none" stroke="#C3C8CF" stroke-dasharray="2 6"/></g>
+          <!-- 轨道粒子 -->
+          <circle r="5" fill="#0869DA">
+            <animateMotion dur="10s" repeatCount="indefinite" path="M260,42 A168,168 0 1,1 259.9,42 Z"/>
+          </circle>
+          <circle r="4" fill="#FA7305">
+            <animateMotion dur="14s" repeatCount="indefinite" path="M260,338 A128,128 0 1,0 259.9,338 Z"/>
+          </circle>
+          <!-- 神经网络连线（数据流） -->
+          <g stroke="#8FBDF0" stroke-width="1.4" class="flow">
+            <line x1="150" y1="150" x2="260" y2="120"/><line x1="150" y1="210" x2="260" y2="170"/>
+            <line x1="150" y1="270" x2="260" y2="230"/><line x1="150" y1="150" x2="260" y2="270"/>
+            <line x1="260" y1="120" x2="370" y2="160"/><line x1="260" y1="170" x2="370" y2="210"/>
+            <line x1="260" y1="230" x2="370" y2="260"/><line x1="260" y1="270" x2="370" y2="210"/>
+          </g>
+          <!-- 神经网络节点 -->
+          <g fill="#fff" stroke="#0869DA" stroke-width="2">
+            <circle class="node" cx="150" cy="150" r="6"/><circle class="node d1" cx="150" cy="210" r="6"/><circle class="node d2" cx="150" cy="270" r="6"/>
+            <circle class="node d1" cx="260" cy="120" r="6"/><circle class="node d2" cx="260" cy="170" r="6"/><circle class="node d3" cx="260" cy="230" r="6"/><circle class="node d4" cx="260" cy="270" r="6"/>
+            <circle class="node d2" cx="370" cy="160" r="6"/><circle class="node d3" cx="370" cy="210" r="6"/><circle class="node d4" cx="370" cy="260" r="6"/>
+          </g>
+          <!-- 底部吞吐柱 -->
+          <g>
+            <rect x="180" y="330" width="22" height="40" rx="3" fill="#BBD8F5"><animate attributeName="height" values="40;64;40" dur="3s" repeatCount="indefinite"/><animate attributeName="y" values="330;306;330" dur="3s" repeatCount="indefinite"/></rect>
+            <rect x="212" y="316" width="22" height="54" rx="3" fill="#5EA9EC"><animate attributeName="height" values="54;30;54" dur="3.6s" repeatCount="indefinite"/><animate attributeName="y" values="316;340;316" dur="3.6s" repeatCount="indefinite"/></rect>
+            <rect x="244" y="300" width="22" height="70" rx="3" fill="url(#gBar)"><animate attributeName="height" values="70;92;70" dur="2.8s" repeatCount="indefinite"/><animate attributeName="y" values="300;278;300" dur="2.8s" repeatCount="indefinite"/></rect>
+            <rect x="276" y="312" width="22" height="58" rx="3" fill="#5EA9EC"><animate attributeName="height" values="58;80;58" dur="3.4s" repeatCount="indefinite"/><animate attributeName="y" values="312;290;312" dur="3.4s" repeatCount="indefinite"/></rect>
+            <rect x="308" y="326" width="22" height="44" rx="3" fill="#BBD8F5"><animate attributeName="height" values="44;24;44" dur="3.1s" repeatCount="indefinite"/><animate attributeName="y" values="326;346;326" dur="3.1s" repeatCount="indefinite"/></rect>
+          </g>
+          <text x="260" y="398" text-anchor="middle" font-size="12" fill="#8C959D" font-family="JetBrains Mono,monospace">// tokens per second</text>
+        </svg>
+      </div>
+    </div>
+  </div>
+  <!-- v0.26：精度测评榜单概览（参照 aisbench_demo.html「推荐榜单总览」六数据集卡片） -->
+  <div class="sec alt" style="border-top:0">
+    <div class="wrap">
+      <div class="sec-hd">
+        <div><h2>精度测评榜单概览</h2><div class="ssub">六大数据集基准的模型精度排行 · 点击卡片查看完整榜单</div></div>
+      </div>
+      <div class="ov-grid" id="accOverview"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ==================== 精度榜单 ==================== -->
+<section class="page" id="page-acc" style="display:none">
+  <div class="hero mini">
+    <div class="wrap">
+      <span class="badge">// ACCURACY RANKING</span>
+      <h1>精度榜单</h1>
+      <p class="sub">六大数据集基准的模型精度排行：支持列表模式与图表模式双视图，按分数从高到低排序。</p>
+    </div>
+  </div>
+  <!-- v0.26：页头与表格区设计区隔（参照性能榜单"对比分析"标题+副标题样式），标题改名"数据集基准排行榜"，删小字行，视图按钮改名 -->
+  <div class="sec alt" style="padding-top:8px">
+    <div class="wrap">
+      <div class="sec-hd">
+        <div><h2>数据集基准排行榜</h2><div class="ssub">切换数据集与视图，按分数从高到低排序</div></div>
+        <div class="seg" id="accView">
+          <button data-v="num" class="active">列表模式</button>
+          <button data-v="img">图表模式</button>
+        </div>
+      </div>
+      <div class="ctabs" id="accTabs"></div>
+      <div id="accNumWrap" class="tblwrap">
+        <table class="tbl">
+          <thead><tr><th style="width:64px">排序</th><th>模型</th><th>模型发布时间</th><th>评测时间</th><th>参数量</th><th>分数</th><th>测试方法</th></tr></thead>
+          <tbody id="accNumBody"></tbody>
+        </table>
+      </div>
+      <div id="accImgWrap" class="accchart" style="display:none">
+        <div class="ytitle">分数</div>
+        <div class="accgrid" id="accGrid"></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ==================== 性能榜单（对比分析 + 测评记录表 + 小模型表格） ==================== -->
+<section class="page" id="page-perf" style="display:none">
+  <div class="hero mini">
+    <div class="wrap">
+      <span class="badge">// PERFORMANCE RANKING</span>
+      <h1>性能榜单</h1>
+      <p class="sub">以提交记录为单位的吞吐 / TTFT / E2EL 多维折线对比与测评记录，另附小模型性能表格。</p>
+    </div>
+  </div>
+
+  <div class="sec alt" style="padding-top:8px">
+    <div class="wrap">
+      <div class="sec-hd">
+        <div><h2>对比分析</h2><div class="ssub">数据源：筛选器组合命中记录</div></div>
+      </div>
+      <div class="filters" style="margin-bottom:20px">
+        <div class="fdd"><button class="fdd-btn">模型：<span id="aisModelLabel">DeepSeek R1</span> <span class="car">▾</span></button>
+          <div class="fdd-panel" style="min-width:250px"><input type="text" class="fdd-search" id="aisModelSearch" placeholder="搜索模型"><div id="aisModelList"></div></div>
+        </div>
+        <div class="fdd"><button class="fdd-btn" data-name="芯片类型">芯片类型 <span class="car">▾</span></button><div class="fdd-panel" id="aisChipPanel"></div></div>
+        <div class="fdd"><button class="fdd-btn">上下文 <span class="car">▾</span></button>
+          <div class="fdd-panel" style="padding:6px"><select class="sel" id="aisCtxSel"><option>1k/1k</option><option>8k/8k</option></select></div>
+        </div>
+        <div class="fdd"><button class="fdd-btn" data-name="精度">精度 <span class="car">▾</span></button><div class="fdd-panel" id="aisPrecPanel"></div></div>
+        <span class="ssub" id="aisHit" style="margin:0 0 0 4px">命中 0 条记录</span>
+      </div>
+      <div class="ctabs" id="aisTabs">
+        <button data-av="0" class="active">吞吐 vs 交互性</button>
+        <button data-av="1">吞吐 vs TTFT 时延</button>
+        <button data-av="2">吞吐 vs 端到端时延</button>
+      </div>
+      <div class="chart-box">
+        <div class="chart-hd"><span class="t" id="aisAxisNote"></span></div>
+        <div id="aisChart" style="overflow-x:auto"></div>
+        <div class="legend" id="aisLegend"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="sec">
+    <div class="wrap">
+      <div class="sec-hd">
+        <div><h2>测评记录表</h2><div class="ssub">每页 10 条 · 查看打开详细报告弹层</div></div>
+      </div>
+      <div class="tblwrap">
+        <table class="tbl">
+          <thead><tr><th>厂商</th><th>整机系统</th><th>模型</th><th>提交日期</th><th>加速器</th><th>推理框架</th><th>精度</th><th>上下文长度</th><th>测评记录</th></tr></thead>
+          <tbody id="aisRecBody"></tbody>
+        </table>
+      </div>
+      <div class="pager" id="aisPager"></div>
+    </div>
+  </div>
+
+  <div class="sec alt">
+    <div class="wrap">
+      <div class="sec-hd">
+        <div><h2>小模型表格</h2><div class="ssub">面向小模型的准确率 / 时延 / 吞吐测评记录</div></div>
+      </div>
+      <div class="tblwrap">
+        <table class="tbl">
+          <thead><tr><th>厂商</th><th>被测系统</th><th>模型</th><th>提交日期</th><th>准确率</th><th>延迟</th><th>吞吐量（samples/s）</th><th>测评记录</th></tr></thead>
+          <tbody id="smBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</section>
+</main>
+
+<footer class="ft">
+  <div class="wrap">
+    <div class="ft-grid">
+      <div>
+        <div class="logo"><span>AISBench</span></div>
+        <p class="slogan">// AI 推理性能测评 · 公开数据平台</p>
+      </div>
+      <div><h5>榜单</h5><a href="javascript:void(0)" onclick="go('acc')">精度榜单</a><a href="javascript:void(0)" onclick="go('perf')">性能榜单</a></div>
+      <!-- v0.26：页脚"工具"下放置四个文档入口（支持 PDF 浏览），删除原"技术白皮书" -->
+      <div>
+        <h5>工具</h5>
+        <a href="https://github.com/AISBench/benchmark" target="_blank" rel="noopener">代码仓（GitHub）</a>
+        <a href="javascript:void(0)" onclick="openPdf('GB/T 45087—2024《人工智能 服务器系统性能测试方法》.pdf')">GB/T 45087—2024《人工智能 服务器系统性能测试方法》</a>
+        <a href="javascript:void(0)" onclick="openPdf('GB/T 46346-2025《人工智能 计算中心 计算能力评估》.pdf')">GB/T 46346-2025《人工智能 计算中心 计算能力评估》</a>
+        <a href="javascript:void(0)" onclick="openPdf('AISBench IEEE标准 2937-2022.pdf')">AISBench IEEE标准 2937-2022</a>
+        <a href="javascript:void(0)" onclick="openPdf('AISBench论文.pdf')">AISBench论文</a>
+      </div>
+      <div><h5>返回</h5><a href="prototype_Benchmark网站_HiFloat重设计_20261028.html">← GCC Benchmark 主站</a></div>
+    </div>
+    <div class="ft-bot"><span>© 2026 AISBench（DEMO 原型）</span><span class="mono">// inference_benchmark</span></div>
+  </div>
+</footer>
+
+<!-- ==================== AISBench 详细报告弹层 ==================== -->
+<div class="modal" id="aisModal" role="dialog" aria-modal="true" aria-label="AISBench 详细报告">
+  <div class="mbox">
+    <div class="mhd">
+      <div><h3 id="aisMTitle"></h3><div class="sub" id="aisMSub"></div></div>
+      <button class="mclose" aria-label="关闭">✕</button>
+    </div>
+    <div class="mbody">
+      <div class="msec"><h4>基础信息汇总 · 总览</h4><div class="tblwrap"><table class="tbl kv"><tbody id="aisMOv"></tbody></table></div></div>
+      <div class="msec"><h4>基础信息汇总 · 硬件</h4><div class="tblwrap"><table class="tbl kv"><tbody id="aisMHw"></tbody></table></div></div>
+      <div class="msec"><h4>基础信息汇总 · 软件</h4><div class="tblwrap"><table class="tbl kv"><tbody id="aisMSw"></tbody></table></div></div>
+      <div class="msec"><h4>测试数据（行=10 指标，列=并发数）</h4><div class="tblwrap"><table class="tbl"><thead><tr><th>指标</th><th>并发 1</th><th>并发 8</th><th>并发 16</th><th>并发 32</th></tr></thead><tbody id="aisMData"></tbody></table></div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== PDF 预览/下载弹层 ==================== -->
+<div class="modal" id="pdfModal" role="dialog" aria-modal="true" aria-label="PDF 文档">
+  <div class="mbox" style="max-width:820px">
+    <div class="mhd">
+      <div><h3 id="pdfTitle" style="font-size:20px"></h3><div class="sub">在线预览 · 支持下载</div></div>
+      <button class="mclose" aria-label="关闭">✕</button>
+    </div>
+    <div class="mbody">
+      <div style="border:1px solid var(--color-border);border-radius:8px;background:var(--color-bg-section);padding:48px 32px;text-align:center">
+        <div class="mono" style="font-size:20px;color:var(--color-text-3)">// PDF PREVIEW</div>
+        <p class="note" style="margin:12px 0 20px">此处为 PDF 在线预览区（DEMO 占位）。正式版内嵌 PDF 阅读器渲染全文。</p>
+        <button class="btn" id="pdfDl">下载 PDF</button>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="hc-tip" id="tooltip"></div>
+
+<!-- v0.26：测试方法弹窗（参数配置表格 + 制作方法链接） -->
+<div class="modal" id="methodModal" role="dialog" aria-modal="true" aria-label="测试方法">
+  <div class="mbox" style="max-width:640px">
+    <div class="mhd">
+      <div><h3 id="methodTitle" style="font-size:20px"></h3><div class="sub">该数据集榜单的测试方法与参数配置</div></div>
+      <button class="mclose" aria-label="关闭">✕</button>
+    </div>
+    <div class="mbody">
+      <div class="msec">
+        <h4>参数配置</h4>
+        <div class="tblwrap"><table class="tbl kv"><tbody>
+          <tr><td>topk</td><td class="mono">1</td></tr>
+          <tr><td>shots</td><td class="mono">0</td></tr>
+          <tr><td>temperature</td><td class="mono">0.0</td></tr>
+          <tr><td>max_tokens</td><td class="mono">1024</td></tr>
+          <tr><td>scoring</td><td class="mono">exact_match</td></tr>
+        </tbody></table></div>
+      </div>
+      <div class="msec" style="border-bottom:0">
+        <h4>制作方法</h4>
+        <a class="method-link" href="javascript:void(0)" onclick="alert('制作方法文档（占位链接）')">查看制作方法 →</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ==================== 工具函数 ==================== */
+var GRAY=["#0969DA","#FA7305","#0BB151","#2E53FA","#984BF6","#8C959D"];
+function dotHtml(i){return '<span class="dot" style="background:'+GRAY[i%GRAY.length]+'"></span>';}
+function kvRow(k,v){return "<tr><td>"+k+"</td><td>"+v+"</td></tr>";}
+var tip=document.getElementById("tooltip");
+function showTip(html,x,y){
+  tip.innerHTML=html;tip.style.display="block";
+  var w=tip.offsetWidth,px=x+16;if(px+w>window.innerWidth-12)px=x-w-12;
+  tip.style.left=Math.max(8,px)+"px";tip.style.top=Math.max(8,y+16)+"px";
+}
+function hideTip(){tip.style.display="none";}
+var pdfName="";
+/* v0.26：点击文档打开 PDF 浏览（预览+下载），与主站行为一致 */
+function openPdf(name){
+  pdfName=name;
+  document.getElementById("pdfTitle").textContent=name;
+  document.getElementById("pdfModal").classList.add("open");
+}
+document.getElementById("pdfDl").addEventListener("click",function(){alert("开始下载："+pdfName);});
+function bindModal(modal){
+  modal.querySelector(".mclose").addEventListener("click",function(){modal.classList.remove("open");});
+  modal.addEventListener("click",function(e){if(e.target===modal)modal.classList.remove("open");});
+}
+bindModal(document.getElementById("aisModal"));
+bindModal(document.getElementById("pdfModal"));
+/* v0.26：测试方法弹窗 */
+bindModal(document.getElementById("methodModal"));
+function openMethod(ds){
+  document.getElementById("methodTitle").textContent="测试方法 · "+ds;
+  document.getElementById("methodModal").classList.add("open");
+}
+
+/* ==================== 页面切换 ==================== */
+var PAGES=["home","acc","perf"];
+function go(p){
+  PAGES.forEach(function(x){document.getElementById("page-"+x).style.display=(x===p)?"":"none";});
+  ["home","acc","perf"].forEach(function(x){var b=document.getElementById("nav-"+x);if(b)b.classList.toggle("on",x===p);});
+  window.scrollTo(0,0);
+}
+
+/* ==================== 精度榜单（六数据集 × 数字/图像双视图） ==================== */
+var ACC_DS=["GPQA Diamond","DeepSWE","TerminalBench2.1","TerminalBench4.0","AutomationBench","MMMUPro"];
+var ACC_MODELS=[
+  {name:"DeepSeek V4 Pro",tag:"开源",vendor:"deepseek",rel:"2026-08-28",param:"1.6T A40B"},
+  {name:"NVIDIA Nemotron Ultra",tag:"开源",vendor:"NVIDIA",rel:"2025-12-09",param:"1000B A100B"},
+  {name:"Qwen3.7-Max",tag:"闭源",vendor:"qwen",rel:"2026-09-23",param:"1T A32B"},
+  {name:"GLM-5.2",tag:"开源",vendor:"zhipuai",rel:"2026-07-28",param:"355B A32B"},
+  {name:"Doubao-Seed-2.2-lite",tag:"闭源",vendor:"ByteDance",rel:"2026-10-16",param:"268B A10B"},
+  {name:"Kimi K3.5",tag:"开源",vendor:"Moonshot AI",rel:"2026-10-13",param:"397B A17B"},
+  {name:"DeepSeek V4 Flash",tag:"开源",vendor:"deepseek",rel:"2026-08-28",param:"235B A22B"},
+  {name:"MiniMax M3.5",tag:"开源",vendor:"MiniMax",rel:"2026-09-17",param:"230B A10B"},
+  /* v0.26：模型由 8 个扩至 15 个（榜单一次性展示前 15 名） */
+  {name:"GPT-5.2",tag:"闭源",vendor:"OpenAI",rel:"2026-04-10",param:"未公开"},
+  {name:"Claude Sonnet 5.5",tag:"闭源",vendor:"Anthropic",rel:"2026-06-18",param:"未公开"},
+  {name:"Gemini 3.5 Ultra",tag:"闭源",vendor:"Google",rel:"2026-05-22",param:"未公开"},
+  {name:"腾讯混元 4.0",tag:"开源",vendor:"腾讯",rel:"2026-03-15",param:"830B A52B"},
+  {name:"阶跃星辰 Step-3.5",tag:"闭源",vendor:"阶跃星辰",rel:"2026-07-08",param:"480B A30B"},
+  {name:"百川 5.0",tag:"开源",vendor:"百川智能",rel:"2026-02-28",param:"520B A36B"},
+  {name:"Llama 4.5 405B",tag:"开源",vendor:"Meta",rel:"2025-11-30",param:"405B"}
+];
+/* 每数据集各模型得分（占位数据，渲染时按分数降序） */
+var ACC_SCORES={
+  "GPQA Diamond":[74.8,73.9,73.6,73.1,72.6,72.5,71.4,70.6,69.8,69.2,68.5,67.9,67.3,66.8,66.1],
+  "DeepSWE":[74.4,73.2,72.8,68.5,67.1,66.3,65.0,63.2,62.5,61.8,60.9,59.7,58.8,57.6,56.4],
+  "TerminalBench2.1":[64.7,63.2,62.5,60.8,59.6,58.9,57.4,56.1,55.3,54.6,53.8,52.7,51.9,50.8,49.6],
+  "TerminalBench4.0":[61.5,60.2,59.8,57.6,56.3,55.8,54.2,52.7,51.8,50.9,49.7,48.6,47.5,46.3,45.2],
+  "AutomationBench":[55.3,54.1,53.6,51.2,50.4,49.1,47.8,46.2,45.3,44.5,43.6,42.4,41.5,40.3,39.2],
+  "MMMUPro":[74.9,74.2,74.0,72.7,72.3,71.1,69.6,68.4,67.8,67.1,66.3,65.5,64.8,63.9,62.7]
+};
+var ACC_EVAL={"GPQA Diamond":"2026-10-18","DeepSWE":"2026-10-20","TerminalBench2.1":"2026-10-22","TerminalBench4.0":"2026-10-24","AutomationBench":"2026-10-26","MMMUPro":"2026-10-28"};
+/* v0.26：数据集简介（用于首页精度测评榜单概览卡片） */
+var ACC_DESC={
+  "GPQA Diamond":"研究生级 Google-Proof 问答，考察模型在科学领域的深度推理能力",
+  "DeepSWE":"软件工程全流程评测，考察模型在真实代码库中的开发与调试能力",
+  "TerminalBench2.1":"终端命令行任务评测 v2.1，考察模型在 CLI 环境中的操作与问题解决能力",
+  "TerminalBench4.0":"终端命令行任务评测 v4.0，新增复杂多步骤任务与系统管理场景",
+  "AutomationBench":"自动化任务评测，考察模型在浏览器自动化、RPA 流程中的执行能力",
+  "MMMUPro":"多模态理解进阶评测，考察模型在跨模态图文推理与学科综合理解能力"
+};
+var BAR_COLORS=["#0869DA","#CE5907","#0BB151","#984BF6","#E0431F","#2E53FA","#1488C6","#B7356C","#0E9488","#D4A017","#5B5BD6","#C2418F","#6B8E23","#4A90D9","#A0522D"];
+var accDs=0,accView="num";
+function accRows(){
+  return ACC_MODELS.map(function(m,i){return Object.assign({},m,{score:ACC_SCORES[ACC_DS[accDs]][i]});})
+    .sort(function(a,b){return b.score-a.score;});
+}
+function renderAccTabs(){
+  document.getElementById("accTabs").innerHTML=ACC_DS.map(function(d,i){
+    return '<button data-d="'+i+'"'+(i===accDs?' class="active"':"")+'>'+d+'</button>';
+  }).join("");
+  document.querySelectorAll("#accTabs button").forEach(function(b){
+    b.addEventListener("click",function(){accDs=+b.dataset.d;renderAcc();});
+  });
+}
+function renderAcc(){
+  renderAccTabs();
+  var rows=accRows();
+  /* v0.26：删除小字说明行；分数列后新增"测试方法"列 */
+  var numWrap=document.getElementById("accNumWrap"),imgWrap=document.getElementById("accImgWrap");
+  if(accView==="num"){
+    numWrap.style.display="";imgWrap.style.display="none";
+    document.getElementById("accNumBody").innerHTML=rows.map(function(r,i){
+      return '<tr><td><span class="rank'+(i<3?" top":"")+'">'+(i+1)+'</span></td>'
+        +'<td><div class="mname">'+r.name+'</div><div class="msub">'+r.tag+' · '+r.vendor+'</div></td>'
+        +'<td>'+r.rel+'</td><td>'+ACC_EVAL[ACC_DS[accDs]]+'</td><td>'+r.param+'</td>'
+        +'<td><span class="score-big">'+r.score.toFixed(1)+'</span></td>'
+        +'<td><a href="javascript:void(0)" onclick="openMethod(\''+ACC_DS[accDs].replace(/'/g,"\\'")+'\')">查看</a></td></tr>';
+    }).join("");
+  }else{
+    numWrap.style.display="none";imgWrap.style.display="";
+    var ymax=Math.ceil(Math.max.apply(null,rows.map(function(r){return r.score;}))/10)*10,grid=document.getElementById("accGrid");
+    var gl="";
+    for(var k=0;k<=5;k++){
+      var yv=ymax*k/5,pct=100-k*20;
+      gl+='<div class="accgl" style="top:'+pct+'%"><span>'+Math.round(yv)+'</span></div>';
+    }
+    gl+='<div class="accbars">'+rows.map(function(r,i){
+      var h=Math.round(r.score/ymax*100);
+      return '<div class="accbar" style="height:'+h+'%;background:'+BAR_COLORS[i%BAR_COLORS.length]+'">'
+        +'<span class="val">'+r.score.toFixed(1)+'</span>'
+        +'<span class="lbl">'+r.name+'</span><span class="ven">'+r.vendor+'</span></div>';
+    }).join("")+'</div>';
+    grid.innerHTML=gl;
+  }
+}
+document.querySelectorAll("#accView button").forEach(function(b){
+  b.addEventListener("click",function(){
+    accView=b.dataset.v;
+    document.querySelectorAll("#accView button").forEach(function(x){x.classList.toggle("active",x===b);});
+    renderAcc();
+  });
+});
+renderAcc();
+
+/* ==================== v0.26：首页精度测评榜单概览（六数据集卡片，参照 aisbench_demo.html「推荐榜单总览」） ==================== */
+function renderAccOverview(){
+  document.getElementById("accOverview").innerHTML=ACC_DS.map(function(ds,di){
+    var rows=ACC_MODELS.map(function(m,i){return Object.assign({},m,{score:ACC_SCORES[ds][i]});})
+      .sort(function(a,b){return b.score-a.score;}).slice(0,3);
+    return '<div class="ov-card" onclick="goToAccDs('+di+')">'
+      +'<div class="ov-hd"><h3>'+ds+'</h3><span class="tag blue">精度</span></div>'
+      +'<div class="ov-info">'+ACC_DESC[ds]+'</div>'
+      +'<div class="ov-rank">'+rows.map(function(r,i){
+        return '<div class="ov-rank-item'+(i===0?' top':'')+'"><span class="no">'+(i+1)+'</span><span class="nm">'+r.name+'</span><span class="sc">'+r.score.toFixed(1)+'</span></div>';
+      }).join("")+'</div></div>';
+  }).join("");
+}
+function goToAccDs(di){
+  accDs=di;
+  renderAcc();
+  go("acc");
+}
+renderAccOverview();
+
+/* ==================== 性能榜单：对比分析（照搬原站逻辑） ==================== */
+var AIS_MODELS=["DeepSeek R1","DeepSeek V4 Pro","DeepSeek V4 Flash","Kimi K3","GLM5.2","Qwen3 32B"];
+var aisModel="DeepSeek R1";
+var CHIP_AIS=[["Nvidia","GB300 NVL72","TRTLLM"],["华为","Atlas 800I A2","CANN"],["寒武纪","MLU590","MagicMind"]];
+var AIS=[
+ {vendor:"Nvidia", sys:"DGX GB300 NVL72", model:"DeepSeek R1", date:"2026-09-12", acc:"GB300 NVL72", fw:"TRTLLM", prec:"FP8", ctx:"1k/1k", x:[1800,11200,17600,21000], y0:[1800,1400,1100,656], y1:[320,480,760,1150], y2:[2100,2900,4200,6100], cards:72},
+ {vendor:"Nvidia", sys:"DGX GB300 NVL72", model:"DeepSeek R1", date:"2026-09-20", acc:"GB300 NVL72", fw:"TRTLLM", prec:"BF16", ctx:"1k/1k", x:[1500,9600,15200,18400], y0:[1500,1200,950,575], y1:[360,540,860,1280], y2:[2400,3300,4700,6800], cards:72},
+ {vendor:"华为", sys:"Atlas 800I A2 集群", model:"DeepSeek R1", date:"2026-09-25", acc:"Atlas 800I A2", fw:"CANN", prec:"BF16", ctx:"1k/1k", x:[1350,8800,14000,17200], y0:[1350,1100,875,538], y1:[410,600,950,1420], y2:[2700,3700,5300,7600], cards:64},
+ {vendor:"华为", sys:"Atlas 800I A2 集群", model:"DeepSeek R1", date:"2026-10-03", acc:"Atlas 800I A2", fw:"CANN", prec:"FP8", ctx:"1k/1k", x:[1600,10200,16100,19600], y0:[1600,1275,1006,613], y1:[370,550,880,1300], y2:[2500,3400,4900,7000], cards:64},
+ {vendor:"寒武纪", sys:"MLU590 推理服务器", model:"DeepSeek R1", date:"2026-10-06", acc:"MLU590", fw:"MagicMind", prec:"INT8", ctx:"1k/1k", x:[1200,7600,12100,15000], y0:[1200,950,756,469], y1:[460,680,1080,1600], y2:[3000,4100,5900,8400], cards:32},
+ {vendor:"寒武纪", sys:"MLU590 推理服务器", model:"DeepSeek R1", date:"2026-10-11", acc:"MLU590", fw:"MagicMind", prec:"FP16", ctx:"1k/1k", x:[1050,6800,10800,13600], y0:[1050,850,675,425], y1:[520,760,1200,1780], y2:[3400,4600,6600,9300], cards:32},
+ {vendor:"Nvidia", sys:"DGX GB300 NVL72", model:"DeepSeek V4 Pro", date:"2026-10-14", acc:"GB300 NVL72", fw:"TRTLLM", prec:"FP8", ctx:"1k/1k", x:[1650,10400,16500,19900], y0:[1650,1300,1031,622], y1:[365,545,870,1290], y2:[2450,3350,4800,6900], cards:72},
+ {vendor:"华为", sys:"Atlas 800I A2 集群", model:"DeepSeek V4 Pro", date:"2026-10-16", acc:"Atlas 800I A2", fw:"CANN", prec:"BF16", ctx:"1k/1k", x:[1280,8300,13200,16300], y0:[1280,1038,825,509], y1:[430,630,1000,1500], y2:[2800,3900,5500,7900], cards:64},
+ {vendor:"寒武纪", sys:"MLU590 推理服务器", model:"Kimi K3", date:"2026-10-18", acc:"MLU590", fw:"MagicMind", prec:"INT8", ctx:"1k/1k", x:[1120,7200,11500,14300], y0:[1120,900,719,447], y1:[490,720,1140,1690], y2:[3200,4400,6200,8800], cards:32},
+ {vendor:"Nvidia", sys:"DGX GB300 NVL72", model:"GLM5.2", date:"2026-10-21", acc:"GB300 NVL72", fw:"TRTLLM", prec:"FP8", ctx:"8k/8k", x:[980,6400,10200,12600], y0:[980,800,638,394], y1:[540,800,1260,1860], y2:[3500,4800,6800,9600], cards:72},
+ {vendor:"华为", sys:"Atlas 800I A2 集群", model:"Qwen3 32B", date:"2026-10-23", acc:"Atlas 800I A2", fw:"CANN", prec:"FP8", ctx:"1k/1k", x:[1700,10800,17000,20500], y0:[1700,1350,1063,641], y1:[355,525,840,1250], y2:[2350,3200,4600,6600], cards:64},
+ {vendor:"寒武纪", sys:"MLU590 推理服务器", model:"Qwen3 32B", date:"2026-10-26", acc:"MLU590", fw:"MagicMind", prec:"FP16", ctx:"1k/1k", x:[1260,8000,12700,15600], y0:[1260,1000,794,488], y1:[440,650,1030,1530], y2:[2900,4000,5700,8100], cards:32}
+];
+var CONC=[1,8,16,32];
+var AIS_METRICS=["输出吞吐 tokens/s","单卡输出吞吐","TTFT 平均 ms","TTFT P90 ms","TPOT 平均 ms","TPOT P90 ms","E2EL 平均 ms","E2EL P90 ms","总请求数","QPS"];
+var PER=10;
+function renderModelList(){
+  var kw=document.getElementById("aisModelSearch").value.trim().toLowerCase();
+  var html="";
+  AIS_MODELS.forEach(function(m){
+    if(kw&&m.toLowerCase().indexOf(kw)<0)return;
+    html+='<label><input type="radio" name="aisModel" value="'+m+'"'+(m===aisModel?" checked":"")+'> '+m+'</label>';
+  });
+  var box=document.getElementById("aisModelList");
+  box.innerHTML=html||'<p class="none">无匹配模型</p>';
+  box.querySelectorAll("input").forEach(function(inp){
+    inp.addEventListener("change",function(){
+      aisModel=inp.value;
+      document.getElementById("aisModelLabel").textContent=aisModel;
+      aisApply();
+    });
+  });
+}
+document.getElementById("aisModelSearch").addEventListener("input",renderModelList);
+renderModelList();
+function chipName(c){return c[0]+" "+c[1]+" ("+c[2]+")";}
+var chipPanel=document.getElementById("aisChipPanel");
+chipPanel.innerHTML=CHIP_AIS.map(function(c){return '<label><input type="checkbox" value="'+chipName(c)+'" checked> '+chipName(c)+'</label>';}).join("")+'<button type="button" class="fdd-clear">清除选择</button>';
+var precPanel=document.getElementById("aisPrecPanel");
+precPanel.innerHTML=["BF16","FP8","INT8","FP16"].map(function(p){return '<label><input type="checkbox" value="'+p+'" checked> '+p+'</label>';}).join("")+'<button type="button" class="fdd-clear">清除选择</button>';
+document.getElementById("aisCtxSel").addEventListener("change",function(){aisApply();});
+[chipPanel,precPanel].forEach(function(p){
+  p.addEventListener("change",function(e){if(e.target.classList.contains("fdd-clear")){p.querySelectorAll("input").forEach(function(c){c.checked=false;});}aisApply();});
+});
+function aisFiltered(){
+  var chips=[],precs=[];
+  chipPanel.querySelectorAll("input:checked").forEach(function(c){chips.push(c.value);});
+  precPanel.querySelectorAll("input:checked").forEach(function(c){precs.push(c.value);});
+  var ctx=document.getElementById("aisCtxSel").value;
+  return AIS.filter(function(r){
+    var cn=r.vendor+" "+r.acc+" ("+r.fw+")";
+    if(r.model!==aisModel)return false;
+    if(chips.length&&chips.indexOf(cn)<0)return false;
+    if(precs.length&&precs.indexOf(r.prec)<0)return false;
+    if(r.ctx!==ctx)return false;
+    return true;
+  });
+}
+var aisView=0;
+var AIS_VIEWS=[
+  {xl:"交互性（输出吞吐/并发数）",yl:"输出吞吐 tokens/s",yi:"y0"},
+  {xl:"TTFT P90（ms）",yl:"输出吞吐 tokens/s",yi:"y1"},
+  {xl:"E2EL P90（ms）",yl:"输出吞吐 tokens/s",yi:"y2"}
+];
+document.querySelectorAll("[data-av]").forEach(function(b){
+  b.addEventListener("click",function(){
+    aisView=+b.dataset.av;
+    document.querySelectorAll("[data-av]").forEach(function(x){x.classList.toggle("active",x===b);});
+    renderAisChart();
+  });
+});
+function renderAisChart(){
+  var recs=aisFiltered(),v=AIS_VIEWS[aisView];
+  document.getElementById("aisAxisNote").textContent="横轴="+v.xl+"；纵轴="+v.yl+"；每条折线=一条提交记录（折线数量不限），节点=并发 1/8/16/32";
+  var box=document.getElementById("aisChart"),leg=document.getElementById("aisLegend");
+  if(!recs.length){box.innerHTML='<p class="none">当前筛选组合无命中记录，请调整筛选器。</p>';leg.innerHTML="";return;}
+  var W=1040,H=380,L=80,Rp=30,T=24,B=52;
+  var xmax=0,ymax=0;
+  recs.forEach(function(r){r[v.yi].forEach(function(x){xmax=Math.max(xmax,x);});r.x.forEach(function(y){ymax=Math.max(ymax,y);});});
+  function px(x){return L+(W-L-Rp)*x/(xmax*1.05);}
+  function py(y){return T+(H-T-B)*(1-y/(ymax*1.1));}
+  var s='<svg width="'+W+'" height="'+H+'" viewBox="0 0 '+W+' '+H+'" role="img" aria-label="AISBench 对比折线图">';
+  s+='<line x1="'+L+'" y1="'+(H-B)+'" x2="'+(W-Rp)+'" y2="'+(H-B)+'" stroke="rgba(0,0,0,.3)"/><line x1="'+L+'" y1="'+T+'" x2="'+L+'" y2="'+(H-B)+'" stroke="rgba(0,0,0,.3)"/>';
+  for(var k=0;k<=4;k++){
+    var yv=ymax*1.1*k/4,yy=py(yv);
+    s+='<line x1="'+L+'" y1="'+yy.toFixed(1)+'" x2="'+(W-Rp)+'" y2="'+yy.toFixed(1)+'" stroke="rgba(0,0,0,.06)"/>'
+      +'<text x="'+(L-8)+'" y="'+(yy+4).toFixed(1)+'" text-anchor="end" font-size="11" fill="rgba(0,0,0,.4)">'+Math.round(yv)+'</text>';
+    var xv=xmax*1.05*k/4;
+    s+='<text x="'+px(xv).toFixed(1)+'" y="'+(H-B+18)+'" text-anchor="middle" font-size="11" fill="rgba(0,0,0,.4)">'+Math.round(xv)+'</text>';
+  }
+  s+='<text x="'+((L+W-Rp)/2)+'" y="'+(H-8)+'" text-anchor="middle" font-size="12" fill="rgba(0,0,0,.6)">'+v.xl+'</text>';
+  s+='<text x="16" y="'+((T+H-B)/2)+'" text-anchor="middle" font-size="12" fill="rgba(0,0,0,.6)" transform="rotate(-90 16 '+((T+H-B)/2)+')">'+v.yl+'</text>';
+  recs.forEach(function(r,ri){
+    var col=GRAY[ri%GRAY.length];
+    var pts=CONC.map(function(c,i){return [px(r[v.yi][i]),py(r.x[i]),i];});
+    s+='<polyline points="'+pts.map(function(p){return p[0].toFixed(1)+","+p[1].toFixed(1);}).join(" ")+'" fill="none" stroke="'+col+'" stroke-width="2"/>';
+    pts.forEach(function(p,i){
+      var tipAttr='ais-tip="'+encodeURIComponent(JSON.stringify({d:r.date,x:r[v.yi][i],y:r.x[i],xl:v.xl,yl:v.yl,cards:r.cards,c:CONC[i],prec:r.prec}))+'"';
+      s+='<circle cx="'+p[0].toFixed(1)+'" cy="'+p[1].toFixed(1)+'" r="5" fill="#fff" stroke="'+col+'" stroke-width="2" '+tipAttr+' style="cursor:pointer"></circle>';
+    });
+  });
+  s+='</svg>';
+  box.innerHTML=s;
+  leg.innerHTML=recs.map(function(r,ri){return '<span>'+dotHtml(ri)+r.vendor+' '+r.sys+' · '+r.fw+' · '+r.prec+'（'+r.date+'）</span>';}).join("");
+  box.querySelectorAll("[ais-tip]").forEach(function(c){
+    c.addEventListener("mouseover",function(e){
+      var d=JSON.parse(decodeURIComponent(c.getAttribute("ais-tip")));
+      showTip('<b>提交日期：</b>'+d.d+'<br><b>'+d.xl+'：</b>'+d.x
+        +'<br><b>'+d.yl+'：</b>'+d.y+'<br><b>总芯片卡数：</b>'+d.cards
+        +'<br><b>并发数：</b>'+d.c+'<br><b>数据精度：</b>'+d.prec,e.clientX,e.clientY);
+    });
+    c.addEventListener("mouseout",hideTip);
+  });
+}
+function renderPager(pid,total,cur,fn){
+  var pages=Math.ceil(total/PER),box=document.getElementById(pid),html="";
+  html+='<button class="pg-btn" data-p="prev"'+(cur<=1?" disabled":"")+'>上一页</button>';
+  for(var i=1;i<=pages;i++){html+='<button class="pg-btn'+(i===cur?" active":"")+'" data-p="'+i+'">'+i+'</button>';}
+  html+='<button class="pg-btn" data-p="next"'+(cur>=pages?" disabled":"")+'>下一页</button>';
+  html+='<span class="pg-note">共 '+total+' 条 · 每页 '+PER+' 条 · 第 '+cur+'/'+pages+' 页</span>';
+  box.innerHTML=html;
+  box.querySelectorAll(".pg-btn").forEach(function(b){
+    b.addEventListener("click",function(){
+      if(b.disabled)return;
+      var p=b.dataset.p==="prev"?cur-1:b.dataset.p==="next"?cur+1:+b.dataset.p;
+      if(p>=1&&p<=pages)fn(p);
+    });
+  });
+}
+var aisPage=1;
+function renderAisTable(){
+  var tb=document.getElementById("aisRecBody"),html="";
+  AIS.forEach(function(r,i){
+    html+='<tr data-i="'+i+'"'+((i>=(aisPage-1)*PER&&i<aisPage*PER)?'':' style="display:none"')+'>'
+      +'<td>'+r.vendor+'</td><td>'+r.sys+'</td><td>'+r.model+'</td><td>'+r.date+'</td><td>'+r.acc+'</td><td>'+r.fw+'</td><td>'+r.prec+'</td><td>'+r.ctx+'</td>'
+      +'<td><button class="btn outline sm" data-am="'+i+'">查看</button></td></tr>';
+  });
+  tb.innerHTML=html;
+  renderPager("aisPager",AIS.length,aisPage,aisGoPage);
+  tb.querySelectorAll("[data-am]").forEach(function(el){el.addEventListener("click",function(){openAisModal(+el.dataset.am);});});
+}
+function aisGoPage(p){
+  aisPage=p;
+  document.querySelectorAll("#aisRecBody tr").forEach(function(tr){
+    var i=+tr.dataset.i;tr.style.display=(i>=(p-1)*PER&&i<p*PER)?"":"none";
+  });
+  renderPager("aisPager",AIS.length,p,aisGoPage);
+}
+renderAisTable();
+function openAisModal(i){
+  var r=AIS[i];
+  document.getElementById("aisMTitle").textContent=r.vendor+" "+r.sys+" · "+r.model;
+  document.getElementById("aisMSub").textContent="提交日期 "+r.date+" · "+r.fw+" · "+r.prec+" · 上下文 "+r.ctx;
+  document.getElementById("aisMOv").innerHTML=
+    kvRow("模型",r.model)+kvRow("数据格式精度",r.prec)+kvRow("数据集","AISBench 标准推理数据集 v2（占位）")
+    +kvRow("上下文长度",r.ctx)+kvRow("提交者（厂商名字）",r.vendor)
+    +kvRow("提交地址（链接）",'<a href="javascript:void(0)" onclick="alert(\'提交记录地址（占位链接）\')">https://repo.example.com/aisbench/records/'+(1000+i)+'</a>')
+    +kvRow("提交日期",r.date);
+  document.getElementById("aisMHw").innerHTML=
+    kvRow("系统名",r.sys)+kvRow("节点数",(r.cards>=64?"2":"1")+" 节点")
+    +kvRow("Processor(CPU)型号*每节点数量","Intel Xeon Platinum 8380(40C-80T) × 2")
+    +kvRow("核数/Processor","80 核 / 每路 40 核")
+    +kvRow("Accelerator型号*每节点数量",r.acc+" × "+(r.cards/(r.cards>=64?2:1)))
+    +kvRow("显存","单卡 288 GB HBM4（占位）")+kvRow("网络/互联","400 Gb/s RDMA（占位）");
+  document.getElementById("aisMSw").innerHTML=
+    kvRow("驱动",r.vendor+" 驱动 v24.3（占位）")+kvRow("操作系统","openEuler 22.03 LTS")
+    +kvRow("推理框架/引擎",r.fw+"（引擎版本占位）")+kvRow("推理优化","KV-Cache 复用 + 连续批处理（占位）")+kvRow("策略","吞吐优先（占位）");
+  var rows=AIS_METRICS.map(function(m,mi){
+    var cells=CONC.map(function(c,ci){
+      var v;
+      if(mi===0)v=r.x[ci];
+      else if(mi===1)v=Math.round(r.x[ci]/r.cards);
+      else if(mi===2)v=Math.round(r.y1[ci]*0.8);
+      else if(mi===3)v=r.y1[ci];
+      else if(mi===4)v=Math.round(28+ci*12);
+      else if(mi===5)v=Math.round(45+ci*20);
+      else if(mi===6)v=Math.round(r.y2[ci]*0.8);
+      else if(mi===7)v=r.y2[ci];
+      else if(mi===8)v=200*c;
+      else v=(r.x[ci]/(r.y2[ci]/1000)).toFixed(1);
+      return '<td class="mono">'+v+'</td>';
+    }).join("");
+    return '<tr><td>'+m+'</td>'+cells+'</tr>';
+  }).join("");
+  document.getElementById("aisMData").innerHTML=rows;
+  document.getElementById("aisModal").classList.add("open");
+}
+function aisApply(){
+  var n=aisFiltered().length;
+  document.getElementById("aisHit").textContent="命中 "+n+" 条记录";
+  renderAisChart();
+}
+
+/* ==================== 小模型表格 ==================== */
+var SMALL=[
+  {vendor:"Nvidia",sys:"Nvidia H200",model:"Resnet50",date:"2026-09-12",acc:"76%",lat:"15ms",thr:"760715"},
+  {vendor:"Nvidia",sys:"Nvidia H200",model:"Bert-Large",date:"2026-09-14",acc:"88%",lat:"22ms",thr:"128450"},
+  {vendor:"华为",sys:"Atlas 300I Duo",model:"Resnet50",date:"2026-09-18",acc:"75%",lat:"19ms",thr:"412300"},
+  {vendor:"华为",sys:"Atlas 300I Duo",model:"Yolov8n",date:"2026-09-21",acc:"61%",lat:"12ms",thr:"586900"},
+  {vendor:"寒武纪",sys:"MLU370-X8",model:"Resnet50",date:"2026-09-25",acc:"74%",lat:"24ms",thr:"268500"},
+  {vendor:"寒武纪",sys:"MLU370-X8",model:"Bert-Large",date:"2026-09-28",acc:"86%",lat:"31ms",thr:"74200"}
+];
+function renderSmall(){
+  document.getElementById("smBody").innerHTML=SMALL.map(function(s,i){
+    return '<tr><td>'+s.vendor+'</td><td>'+s.sys+'</td><td>'+s.model+'</td><td>'+s.date+'</td>'
+      +'<td>'+s.acc+'</td><td>'+s.lat+'</td><td class="mono">'+s.thr+'</td>'
+      +'<td><button class="btn outline sm" data-sm="'+i+'">查看</button></td></tr>';
+  }).join("");
+  document.querySelectorAll("[data-sm]").forEach(function(b){
+    b.addEventListener("click",function(){openSmallModal(+b.dataset.sm);});
+  });
+}
+function openSmallModal(i){
+  var s=SMALL[i];
+  document.getElementById("aisMTitle").textContent=s.vendor+" "+s.sys+" · "+s.model;
+  document.getElementById("aisMSub").textContent="提交日期 "+s.date+" · 小模型测评记录";
+  document.getElementById("aisMOv").innerHTML=
+    kvRow("厂商",s.vendor)+kvRow("被测系统",s.sys)+kvRow("模型",s.model)+kvRow("提交日期",s.date);
+  document.getElementById("aisMHw").innerHTML=
+    kvRow("系统名",s.sys)+kvRow("节点数","1 节点")
+    +kvRow("Processor(CPU)型号*每节点数量","Intel Xeon Platinum 8380(40C-80T) × 2")
+    +kvRow("核数/Processor","80 核 / 每路 40 核")
+    +kvRow("Accelerator型号*每节点数量",s.sys.replace(s.vendor+" ","")+" × 8")
+    +kvRow("显存","单卡 96 GB（占位）")+kvRow("网络/互联","200 Gb/s（占位）");
+  document.getElementById("aisMSw").innerHTML=
+    kvRow("驱动",s.vendor+" 驱动 v24.3（占位）")+kvRow("操作系统","openEuler 22.03 LTS")
+    +kvRow("推理框架/引擎","推理引擎（占位）")+kvRow("推理优化","算子融合 + 量化加速（占位）")+kvRow("策略","时延优先（占位）");
+  document.getElementById("aisMData").innerHTML=
+    '<tr><td>准确率</td><td colspan="4" class="mono">'+s.acc+'</td></tr>'
+    +'<tr><td>延迟</td><td colspan="4" class="mono">'+s.lat+'</td></tr>'
+    +'<tr><td>吞吐量（samples/s）</td><td colspan="4" class="mono">'+s.thr+'</td></tr>';
+  document.getElementById("aisModal").classList.add("open");
+}
+renderSmall();
+
+/* ==================== 筛选器下拉（v0.26：查看技术文档/浏览榜单下拉已删除） ==================== */
+document.addEventListener("click",function(e){
+  if(!e.target.closest(".fdd")){document.querySelectorAll(".fdd.open").forEach(function(d){d.classList.remove("open");});}
+});
+document.querySelectorAll(".fdd-btn").forEach(function(btn){
+  btn.addEventListener("click",function(e){
+    e.stopPropagation();
+    var fdd=btn.parentElement,open=fdd.classList.contains("open");
+    document.querySelectorAll(".fdd.open").forEach(function(d){d.classList.remove("open");});
+    fdd.classList.toggle("open",!open);
+  });
+});
+aisApply();
+</script>
+</body>
+</html>

@@ -699,7 +699,7 @@ th.sorted .sarr{color:var(--color-primary)}
     </div>
     <div class="mbody">
       <div class="msec"><div class="scards" id="cpuMScore"></div></div>
-      <div class="msec"><h4>目录信息</h4><div class="tblwrap"><table class="tbl kv"><tbody id="cpuMFolder"></tbody></table></div></div>
+      <div class="msec"><h4>测试信息</h4><div class="tblwrap"><table class="tbl kv"><tbody id="cpuMFolder"></tbody></table></div></div>
       <div class="msec"><h4>硬件环境</h4><div class="tblwrap"><table class="tbl kv"><tbody id="cpuMHw"></tbody></table></div></div>
       <div class="msec"><h4>各测试子项得分图</h4><div class="legend" id="cpuMLegend" style="margin:0 0 8px"></div><div id="cpuMBar"></div></div>
     </div>
@@ -1170,21 +1170,19 @@ function openCpuModal(id){
   document.getElementById("cpuMScore").innerHTML=SUITES.map(function(s,i){
     return '<div class="scard"><div class="nm">'+dotHtml(i)+s[0]+' '+s[1]+'</div><div class="val">'+r.s[i].toFixed(1)+'</div><div class="sub">并行任务 '+parallel[i]+'</div></div>';
   }).join("");
+  /* v0.26：目录信息改名"测试信息"，5行（恢复整机厂商行）；硬件环境两字段改名、删"硬件厂商""BIOS 型号名称" */
   document.getElementById("cpuMFolder").innerHTML=
-    kvRow("测试单位",r.unit)+kvRow("整机型号",r.model)
-    +kvRow("处理器型号",r.cpu)+kvRow("Socket 数量",r.socket+"S")
-    +kvRow("测试时间",r.date);
+    kvRow("测试单位",r.unit)+kvRow("整机厂商",r.vendor)+kvRow("整机型号",r.model)
+    +kvRow("处理器型号",r.cpu)+kvRow("测试时间",r.date);
   document.getElementById("cpuMHw").innerHTML=
     kvRow("架构",r.arch)
-    +kvRow("硬件插槽数/每路核数",r.socket+" 路 / "+(r.cpu.indexOf("32C")>=0?"32":r.cpu.indexOf("40C")>=0?"40":"64")+" 核")
-    +kvRow("总线程数/NUMA 节点",(r.cpu.indexOf("64T")>=0?"128":r.cpu.indexOf("80T")>=0?"160":"64")+" 线程 / "+(r.socket*2)+" 节点")
+    +kvRow("Socket(s)/cores per Socket",r.socket+" 路 / "+(r.cpu.indexOf("32C")>=0?"32":r.cpu.indexOf("40C")>=0?"40":"64")+" 核")
+    +kvRow("CPU(s)/NUMA节点数",(r.cpu.indexOf("64T")>=0?"128":r.cpu.indexOf("80T")>=0?"160":"64")+" 线程 / "+(r.socket*2)+" 节点")
     +kvRow("主频","2.80 GHz（基频）/ 3.50 GHz（加速）")
     +kvRow("内存","512 GB DDR4-3200（16 × 32 GB）")
     +kvRow("L1/L2/L3 缓存","2 MB / 16 MB / 128 MB")
     +kvRow("操作系统","openEuler 22.03 LTS")
-    +kvRow("文件系统","ext4")
-    +kvRow("硬件厂商",r.vendor)
-    +kvRow("BIOS 型号名称",r.vendor+" BIOS v5.23");
+    +kvRow("文件系统","ext4");
   document.getElementById("cpuMLegend").innerHTML=SUITES.map(function(s,i){return '<span>'+dotHtml(i)+s[0]+' '+s[1]+'</span>';}).join("")+'<span style="color:var(--color-text-4)">（悬浮显示该子项双柱得分）</span>';
   var bars="";
   /* v0.14 子项得分图单核/并发双柱区分：并发柱按并发/单核总分倍率派生占位；v0.24 hover 同显该子项两柱得分；v0.25 删组标识行、柱下分数加深 */
