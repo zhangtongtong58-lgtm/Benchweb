@@ -5,92 +5,86 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>AISBench · AI 推理性能测评工具</title>
 <style>
-/* ==================== HiFloat 设计 Token（沿用 GCC 站） ==================== */
+/* ==================== HiFloat 设计 Token（v0.35 评审修复 P1-1：真沿用 GCC 站 token 表——同名 token 与 design/prototype_Benchmark网站_HiFloat重设计_20261028.html :root（L9-28）取值逐字一致：主色 #0969DA、--fw-bold 600、--fs-text1 16px、文字灰阶 rgba 四档、描边 rgba(0,0,0,.1)、双档阴影+标准缓动。本页局部扩展仅 3 项且逐项声明：--color-bg（GCC --color-bg-page 同值别名）、--fs-tip 13px、--fs-h5 18px；GCC 表中本页未用到的 --gap-1..8、--color-aux-blue/purple、--chart-bar 不引入，避免僵尸 token） ==================== */
 :root{
-  --color-primary:#0869DA;--color-primary-hover:#0A5CC0;--color-primary-active:#0B4FA6;
-  --color-bg:#FFFFFF;--color-bg-section:#F5F6F7;--color-bg-control:#F0F2F4;
-  --color-border:#D9DDE2;--color-border-dark:#C3C8CF;
-  --color-text-1:#020914;--color-text-2:#353E47;--color-text-3:#67707A;--color-text-4:#8C959D;
-  --font-main:'HarmonyOS Sans SC','Inter','PingFang SC','Microsoft YaHei',sans-serif;
-  --font-code:'JetBrains Mono','SFMono-Regular','Consolas',monospace;
-  --fs-tip2:12px;--fs-tip:13px;--fs-text1:14px;--fs-text:16px;
-  --fs-h5:18px;--fs-h4:20px;--fs-h3:24px;--fs-h2:32px;--fs-h1:40px;
-  --fw-bold:700;--fw-medium:500;
-  --radius-control:4px;--radius-card:8px;--radius-pill:999px;
-  --duration-s:.2s;--shadow-2:0 8px 24px rgba(2,9,20,.08);
+  --font-body:HarmonyOS,Inter,-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",Arial,sans-serif;
+  --font-code:SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono",monospace;
+  --color-primary:#0969DA;--color-primary-hover:#4E97E7;--color-primary-active:#0D5EB8;--color-primary-bg:#E2EDFD;
+  --color-accent-red:#CF222E;
+  --color-bg:#FFFFFF;/* 局部扩展：GCC --color-bg-page 同值别名（本页 body/顶栏引用此名） */
+  --color-bg-section:#F6F8FA;--color-bg-control:#F0F2F5;
+  --color-border:rgba(0,0,0,.1);--color-border-control:#D0D7DF;
+  --color-text-1:rgba(0,0,0,.85);--color-text-2:rgba(0,0,0,.8);--color-text-3:rgba(0,0,0,.6);--color-text-4:rgba(0,0,0,.4);
+  --fs-tip2:12px;--lh-tip2:18px;--fs-tip1:14px;--lh-tip1:22px;--fs-text1:16px;--lh-text1:24px;
+  --fs-tip:13px;/* 局部扩展：控件/表格紧凑档（GCC 档位无此值） */
+  --fs-h4:20px;--lh-h4:28px;--fs-h3:22px;--lh-h3:30px;--fs-h2:24px;--lh-h2:32px;--fs-h1:32px;--lh-h1:44px;
+  --fs-h5:18px;/* 局部扩展：分数大数字/模态标题档（GCC 档位无此值） */
+  --fw-regular:400;--fw-bold:600;
+  --radius-control:4px;--radius-card:8px;--radius-pill:736px;
+  --shadow-1:0 3px 8px rgba(0,0,0,.08);--shadow-2:0 2px 24px rgba(0,0,0,.15);
+  --duration-s:.2s;--easing-standard:cubic-bezier(.2,0,0,1);
+  --header-height:72px;/* v0.34：顶栏高度 token，参照 GCC Benchmark 顶栏（72px，§6.3） */
 }
 *{margin:0;padding:0;box-sizing:border-box}
-body{font:var(--fs-text1)/1.6 var(--font-main);color:var(--color-text-2);background:var(--color-bg)}
+body{font:var(--fs-tip1)/var(--lh-tip1) var(--font-body);color:var(--color-text-2);background:var(--color-bg)}/* v0.35：正文 14px/22px（原 --fs-text1 14px 档位并入 GCC --fs-tip1，渲染不变） */
 a{color:var(--color-primary);text-decoration:none}
+a:hover{text-decoration:underline}/* v0.35 评审修复 P2-4：对齐重设计 L33——链接悬停补下划线（§6.1） */
 button{font-family:inherit}
 .wrap{max-width:1200px;margin:0 auto;padding:0 24px}
 .mono{font-family:var(--font-code)}
-.badge{font:500 var(--fs-tip)/18px var(--font-code);color:var(--color-primary);letter-spacing:1px}
+.badge{display:inline-block;font:600 12px/24px var(--font-code);color:var(--color-accent-red);background:rgba(207,34,46,.1);border:1px solid rgba(207,34,46,.25);border-radius:var(--radius-control);padding:0 12px;letter-spacing:.5px}/* v0.35 评审修复 P2-1：对齐重设计 L64——红色容器形态徽标（--color-accent-red 全页仅此处使用，§9.5 配额纪律） */
 
-/* ==================== 顶栏（自有导航：首页/精度榜单/性能榜单/测评工具） ==================== */
-.hd{position:sticky;top:0;z-index:100;background:rgba(255,255,255,.92);backdrop-filter:blur(8px);border-bottom:1px solid var(--color-border)}
-.hd-in{max-width:1200px;margin:0 auto;padding:0 24px;height:64px;display:flex;align-items:center;justify-content:space-between}
-.logo{display:flex;align-items:baseline;gap:10px;cursor:pointer;font-weight:var(--fw-bold);font-size:var(--fs-h5);color:var(--color-text-1)}
-.logo small{font:400 var(--fs-tip2)/1 var(--font-code);color:var(--color-text-4)}
-.nav{display:flex;gap:4px}
-.nlink{background:none;border:0;font-size:var(--fs-text1);color:var(--color-text-2);padding:8px 14px;cursor:pointer;border-radius:var(--radius-control)}
-.nlink:hover,.nlink.on{color:var(--color-primary)}
-.nlink.on{font-weight:var(--fw-medium);background:rgba(8,105,218,.06)}
+/* ==================== 顶栏（v0.34：样式参照 GCC Benchmark 顶栏——72px 固定不透明栏、logo 双行、导航左对齐紧随 logo（gap 40px）、全高导航项、选中态=主色加粗+2px 底部下划线；导航项：首页/精度榜单/性能榜单/测评工具） ==================== */
+.hd{position:fixed;top:0;left:0;right:0;height:var(--header-height);background:var(--color-bg);border-bottom:1px solid var(--color-border);z-index:101}
+.hd-in{max-width:1200px;margin:0 auto;padding:0 24px;height:var(--header-height);display:flex;align-items:center;gap:40px}
+.logo{display:flex;align-items:center;gap:10px;font:700 18px/24px var(--font-body);color:var(--color-text-1);cursor:pointer;white-space:nowrap}
+.logo small{font:400 11px/14px var(--font-code);color:var(--color-text-4);display:block}
+.nav{display:flex;height:var(--header-height)}
+.nlink{position:relative;background:none;border:0;font-size:14px;color:var(--color-text-3);padding:0 14px;height:100%;display:flex;align-items:center;cursor:pointer;transition:color var(--duration-s) var(--easing-standard)}
+.nlink:hover{color:var(--color-primary);text-decoration:none}/* v0.35 P2-4：全局 a:hover 下划线，顶栏导航项豁免（选中态下划线由 .nlink.on::after 绘制，#49 裁决） */
+.nlink.on{color:var(--color-primary);font-weight:var(--fw-bold)}
+.nlink.on::after{content:"";position:absolute;left:14px;right:14px;bottom:0;height:2px;background:var(--color-primary)}/* GCC 用 .ni.sel::after 画下划线；本页导航项无 .ni 包裹层，等价画在满高的 .nlink 上 */
+main{padding-top:var(--header-height)}/* v0.34：顶栏改 fixed 后主体补等高顶部内边距（参照 GCC main 规则） */
 
 /* ==================== 通用区块 ==================== */
 .sec{padding:56px 0;border-top:1px solid var(--color-border)}
 .sec.alt{background:var(--color-bg-section)}
 .sec-hd{display:flex;justify-content:space-between;align-items:flex-end;gap:24px;margin-bottom:32px}
-.sec-hd h2{font-size:var(--fs-h3);color:var(--color-text-1);font-weight:var(--fw-bold)}
+.sec-hd h2{font-size:var(--fs-h2);/* v0.35：原 --fs-h3 24px 档位并入 GCC --fs-h2（同值 24px），渲染不变 */color:var(--color-text-1);font-weight:var(--fw-bold)}
 .ssub{font-size:var(--fs-tip);color:var(--color-text-3);margin-top:6px}
 .note{font-size:var(--fs-tip);color:var(--color-text-3)}
 .none{padding:32px;text-align:center;color:var(--color-text-4);font-size:var(--fs-tip)}
 
 /* ==================== 按钮 ==================== */
-.btn{display:inline-flex;align-items:center;justify-content:center;height:40px;padding:0 20px;border-radius:var(--radius-card);border:1px solid transparent;background:var(--color-primary);color:#fff;font-size:var(--fs-text1);cursor:pointer;transition:background var(--duration-s)}
+.btn{height:40px;padding:8px 24px;border-radius:var(--radius-card);border:1px solid transparent;background:var(--color-primary);color:#fff;font-size:var(--fs-text1);cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:6px;transition:background var(--duration-s) var(--easing-standard)}/* v0.35 评审修复 P2-2：对齐重设计 L71——40px 高、8px 24px 内边距、字号 --fs-text1（GCC 表 16px） */
 .btn:hover{background:var(--color-primary-hover)}
-.btn.ghost{background:transparent;border-color:var(--color-border-dark);color:var(--color-text-1)}
-.btn.ghost:hover{border-color:var(--color-primary);color:var(--color-primary)}
+.btn.ghost{background:transparent;color:var(--color-text-3);border-color:var(--color-border-control)}/* 对齐重设计 L73 */
+.btn.ghost:hover{color:var(--color-primary);border-color:var(--color-primary);background:transparent}
 .btn.outline{background:transparent;border-color:var(--color-primary);color:var(--color-primary)}
-.btn.outline:hover{background:rgba(8,105,218,.06)}
-.btn.sm{height:32px;padding:0 14px;font-size:var(--fs-tip)}
-.btn-link{background:none;border:0;color:var(--color-primary);cursor:pointer;font-size:var(--fs-text1);padding:0 8px}
+.btn.outline:hover{background:var(--color-primary-bg)}/* 对齐重设计 L76 */
+.btn.sm{height:28px;padding:2px 12px;font-size:var(--fs-tip2);border-radius:var(--radius-control);white-space:nowrap}/* 对齐重设计 L77 */
+.btn-link{background:none;border:0;color:var(--color-primary);cursor:pointer;font-size:var(--fs-tip1);padding:0 8px}
 
 /* ==================== Hero（首页：左文右动图） ==================== */
-.hero{padding:80px 0 72px}
+.hero{border-bottom:1px solid var(--color-border);padding:64px 0 56px;background-image:linear-gradient(rgba(9,105,218,.05) 1px,transparent 1px),linear-gradient(90deg,rgba(9,105,218,.05) 1px,transparent 1px);background-size:24px 24px}/* v0.35 评审修复 P2-21：对齐重设计 L62——方格网格肌理+底部分隔线+padding 64/56（§5） */
 .hero-split{display:grid;grid-template-columns:1.05fr .95fr;gap:48px;align-items:center}
-.hero h1{font-size:clamp(24px,2.7vw,32px);line-height:1.2;color:var(--color-text-1);margin:16px 0 12px;font-weight:var(--fw-bold);white-space:nowrap}
+.hero h1{font-size:clamp(24px,2.7vw,32px);line-height:1.2;color:var(--color-text-1);margin:16px 0 12px;font-weight:700;white-space:nowrap}/* v0.35：展示级标题字重 700（同重设计 L65）；clamp 防换行为 #42 裁决机制，保留 */
 .hero h1 em{font-style:normal;color:var(--color-primary)}
-.hero .sub{font-size:var(--fs-text);color:var(--color-text-3);max-width:560px}
+.hero .sub{font-size:var(--fs-text1);line-height:var(--lh-text1);color:var(--color-text-3);max-width:560px}/* v0.35：原局部 --fs-text 16px 并入 GCC --fs-text1（同值），渲染不变 */
 .hero-cta{display:flex;gap:12px;margin-top:28px;flex-wrap:wrap}
-.hero.mini{padding:48px 0 36px}
-.hero.mini h1{font-size:var(--fs-h2);margin:10px 0 8px}
-.hero.mini .sub{font-size:var(--fs-text1)}
+.hero.mini{padding:48px 0 40px}/* 对齐重设计 L63 */
+.hero.mini h1{font-size:var(--fs-h1);margin:10px 0 8px}/* v0.35：原 --fs-h2 32px 档位并入 GCC --fs-h1（同值 32px），渲染不变 */
+.hero.mini .sub{font-size:var(--fs-tip1)}
 
-/* ==================== 下拉文档按钮（参照下拉按钮.jpg）与浏览榜单下拉 ==================== */
-.docdd{position:relative;display:inline-block}
-.docdd-btn{height:40px;padding:8px 20px;border-radius:var(--radius-card);border:1px solid transparent;background:var(--color-primary);color:#fff;font-size:var(--fs-text1);cursor:pointer;display:inline-flex;align-items:center;gap:8px;transition:background var(--duration-s)}
-.docdd-btn:hover{background:var(--color-primary-hover)}
-.docdd.ghost .docdd-btn{background:transparent;border-color:var(--color-border-dark);color:var(--color-text-1)}
-.docdd.ghost .docdd-btn:hover{border-color:var(--color-primary);color:var(--color-primary)}
-.docdd-btn .car{font-size:10px;transition:transform var(--duration-s)}
-.docdd.open .docdd-btn .car{transform:rotate(180deg)}
-.docdd-panel{position:absolute;top:46px;left:0;min-width:300px;background:var(--color-bg);border:1px solid var(--color-border);border-radius:var(--radius-card);box-shadow:var(--shadow-2);padding:8px;display:none;z-index:80}
-.docdd.open .docdd-panel{display:block}
-.docdd-hd{font:600 12px/18px var(--font-code);color:var(--color-text-4);letter-spacing:.8px;padding:8px 12px 6px}
-.doc-item{display:flex;align-items:center;gap:10px;width:100%;padding:10px 12px;border:0;background:none;font-size:var(--fs-text1);color:var(--color-text-1);cursor:pointer;border-radius:var(--radius-control);text-align:left}
-.doc-item:hover{background:var(--color-bg-control)}
-.doc-item .dtype{font-size:11px;padding:1px 6px;border-radius:var(--radius-control);background:var(--color-bg-control);color:var(--color-text-3)}
-.doc-item .dname{flex:1}
-.doc-item .dico{color:var(--color-text-4)}
+/* v0.35 评审修复 P2-12：.docdd 系列与 .doc-item 系列僵尸样式已删除（v0.26 起文档入口改为页脚「工具」组，标记与 JS 均无调用） */
 
 /* ==================== 筛选器下拉 ==================== */
 .filters{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
 .fdd{position:relative}
-.fdd-btn{height:36px;padding:0 14px;border:1px solid var(--color-border);border-radius:var(--radius-card);background:#fff;font-size:var(--fs-text1);color:var(--color-text-1);cursor:pointer;display:inline-flex;align-items:center;gap:6px}
+.fdd-btn{height:36px;padding:0 14px;border:1px solid var(--color-border);border-radius:var(--radius-card);background:#fff;font-size:var(--fs-tip1);color:var(--color-text-1);cursor:pointer;display:inline-flex;align-items:center;gap:6px}
 .fdd-btn:hover{border-color:var(--color-primary)}
 .fdd-btn .car{font-size:10px;color:var(--color-text-4)}
-.fdd-panel{position:absolute;top:42px;left:0;min-width:230px;max-height:300px;overflow:auto;background:#fff;border:1px solid var(--color-border);border-radius:var(--radius-card);box-shadow:var(--shadow-2);padding:10px;display:none;z-index:70}
+.fdd-panel{position:absolute;top:42px;left:0;min-width:230px;max-height:300px;overflow:auto;background:#fff;border:1px solid var(--color-border);border-radius:var(--radius-card);box-shadow:var(--shadow-1);padding:10px;display:none;z-index:70}/* v0.35 P2-3：下拉面板阴影降为 shadow-1（对齐重设计 .dd L53） */
 .fdd.open .fdd-panel{display:block}
 .fdd-panel label{display:flex;align-items:center;gap:8px;padding:6px 4px;font-size:var(--fs-tip);color:var(--color-text-2);cursor:pointer}
 .fdd-search{width:100%;height:30px;border:1px solid var(--color-border);border-radius:var(--radius-control);padding:0 10px;font-size:var(--fs-tip);margin-bottom:8px}
@@ -98,13 +92,13 @@ button{font-family:inherit}
 .sel{height:32px;border:1px solid var(--color-border);border-radius:var(--radius-control);padding:0 8px;font-size:var(--fs-tip);width:100%}
 
 /* ==================== 页签与切换 ==================== */
-.ctabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}
-.ctabs button{height:32px;padding:0 16px;border:1px solid var(--color-border);border-radius:var(--radius-pill);background:#fff;font-size:var(--fs-tip);color:var(--color-text-2);cursor:pointer}
-.ctabs button:hover{border-color:var(--color-primary);color:var(--color-primary)}
-.ctabs button.active{background:var(--color-primary);border-color:var(--color-primary);color:#fff}
+.ctabs{display:flex;gap:28px;border-bottom:1px solid var(--color-border);margin-bottom:24px;flex-wrap:wrap}/* v0.35 评审修复 P2-20：对齐重设计 L238-240——页签由胶囊底色改为下划线形态，与顶栏选中态视觉语言统一 */
+.ctabs button{border:0;background:none;padding:10px 2px;font-size:var(--fs-tip1);color:var(--color-text-3);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px}
+.ctabs button:hover{color:var(--color-primary)}
+.ctabs button.active{color:var(--color-primary);border-bottom-color:var(--color-primary);font-weight:var(--fw-bold)}
 .seg{display:flex;background:var(--color-bg-control);border-radius:var(--radius-pill);padding:3px}
 .seg button{height:30px;padding:0 16px;border:0;border-radius:var(--radius-pill);background:transparent;font-size:var(--fs-tip);color:var(--color-text-2);cursor:pointer}
-.seg button.active{background:#fff;color:var(--color-primary);font-weight:var(--fw-medium);box-shadow:0 1px 3px rgba(2,9,20,.1)}
+.seg button.active{background:#fff;color:var(--color-primary);font-weight:var(--fw-bold);box-shadow:0 1px 3px rgba(2,9,20,.1)}/* v0.35：字重两档纪律——500 并入 --fw-bold 600 */
 
 /* ==================== 图表与图例 ==================== */
 .chart-box{background:#fff;border:1px solid var(--color-border);border-radius:var(--radius-card);padding:20px 24px}
@@ -116,69 +110,90 @@ button{font-family:inherit}
 /* ==================== 表格 ==================== */
 .tblwrap{border:1px solid var(--color-border);border-radius:var(--radius-card);overflow:auto;background:#fff}
 .tbl{width:100%;border-collapse:collapse;font-size:var(--fs-tip)}
-.tbl th{background:var(--color-bg-section);color:var(--color-text-3);font-weight:var(--fw-medium);text-align:left;padding:10px 14px;border-bottom:1px solid var(--color-border);white-space:nowrap}
+.tbl th{background:var(--color-bg-section);color:var(--color-text-3);font-weight:var(--fw-bold);text-align:left;padding:10px 14px;border-bottom:1px solid var(--color-border);white-space:nowrap}/* v0.35：表头字重对齐重设计 L267（600） */
 .tbl td{padding:10px 14px;border-bottom:1px solid var(--color-border);color:var(--color-text-2)}
 .tbl tr:last-child td{border-bottom:0}
 .tbl tbody tr:hover{background:var(--color-bg-section)}
 .tbl.kv td:first-child{width:280px;color:var(--color-text-3);background:var(--color-bg-section)}
 .rank{display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:50%;background:var(--color-bg-control);color:var(--color-text-2);font:var(--fw-bold) var(--fs-tip)/1 var(--font-code)}
 .rank.top{background:var(--color-primary);color:#fff}
-.mname{font-weight:var(--fw-medium);color:var(--color-text-1)}
+.mname{font-weight:var(--fw-bold);color:var(--color-text-1)}/* v0.35：模型名=行级标题，字重两档纪律 500→600 */
 .msub{font-size:var(--fs-tip2);color:var(--color-text-4)}
 .score-big{font:var(--fw-bold) var(--fs-h5)/1.2 var(--font-code);color:var(--color-primary)}
 .tag{display:inline-block;font-size:11px;padding:1px 8px;border-radius:var(--radius-control)}
-.tag.blue{background:rgba(8,105,218,.08);color:var(--color-primary)}
+.tag.blue{background:rgba(9,105,218,.08);color:var(--color-primary)}/* v0.35：底色随主色 #0969DA 同步 */
 .tag.green{background:rgba(11,177,81,.08);color:#0B8A41}
 .tag.orange{background:rgba(206,89,7,.08);color:#CE5907}
 .pager{display:flex;align-items:center;gap:6px;padding:14px 0;font-size:var(--fs-tip)}
 .pg-btn{height:30px;min-width:30px;padding:0 8px;border:1px solid var(--color-border);border-radius:var(--radius-control);background:#fff;cursor:pointer;color:var(--color-text-2)}
-.pg-btn.active{border-color:var(--color-primary);color:var(--color-primary);font-weight:var(--fw-medium)}
+.pg-btn.active{border-color:var(--color-primary);color:var(--color-primary);font-weight:var(--fw-bold)}/* v0.35：对齐重设计 L276（600） */
 .pg-btn:disabled{opacity:.4;cursor:not-allowed}
 .pg-note{color:var(--color-text-4);margin-left:8px}
 
 /* ==================== 图表模式（柱状；v0.27：模型名称竖排放入柱子内部） ==================== */
-.accchart{position:relative;height:400px;background:#fff;border:1px solid var(--color-border);border-radius:var(--radius-card);padding:28px 36px 44px 56px;overflow:hidden}
-.accgrid{position:absolute;left:56px;right:36px;top:28px;bottom:44px}
+.accchart{position:relative;height:420px;background:#fff;border:1px solid var(--color-border);border-radius:var(--radius-card);padding:28px 36px 64px 56px;overflow:hidden}/* v0.32：底部留白 44→64px 为横轴标注腾出上下间隙；整高 400→420px 保持绘图区不压缩 */
+.accgrid{position:absolute;left:56px;right:36px;top:28px;bottom:64px}
 .accgl{position:absolute;left:0;right:0;border-top:1px dashed rgba(0,0,0,.08)}
-.accgl span{position:absolute;left:-44px;top:-8px;font:11px var(--font-code);color:var(--color-text-4)}
+.accgl span{position:absolute;right:calc(100% + 8px);top:-8px;font:11px var(--font-code);color:var(--color-text-4)}/* v0.30：刻度数字右对齐收于网格左缘 8px 处，与散点图纵轴刻度位置关系一致，避让「分数」轴标题 */
 .accbars{position:absolute;left:0;right:0;top:0;bottom:0;display:flex;align-items:flex-end;justify-content:space-around;gap:12px}
-.accbar{position:relative;flex:1;max-width:96px;border-radius:6px 6px 0 0;transition:opacity var(--duration-s)}
+.accbar{position:relative;flex:1;max-width:96px;border-radius:6px 6px 0 0;transition:opacity var(--duration-s) var(--easing-standard)}
 .accbar:hover{opacity:.85}
 .accbar .val{position:absolute;left:50%;transform:translateX(-50%);top:6px;font:var(--fw-bold) 13px var(--font-code);color:#fff;text-shadow:0 1px 2px rgba(0,0,0,.18)}
 /* v0.27：模型名称竖排放入柱子内部（取消柱底斜排标签） */
 .accbar .lbl{position:absolute;bottom:8px;left:50%;transform:translateX(-50%);writing-mode:vertical-rl;white-space:nowrap;font-size:11px;line-height:1;color:#fff;max-height:calc(100% - 28px);overflow:hidden}
-.accbar .ven{position:absolute;top:calc(100% + 10px);left:0;right:0;text-align:center;font-size:10px;color:var(--color-text-4)}
-.ytitle{position:absolute;left:14px;top:50%;transform:rotate(-90deg) translateX(50%);transform-origin:left top;font-size:var(--fs-tip);color:var(--color-text-3)}
+.accbar .ven{position:absolute;top:calc(100% + 10px);left:50%;transform:translateX(-50%);white-space:nowrap;text-align:center;font-size:10px;color:var(--color-text-4)}/* v0.32：横向坐标轴内容不换行——厂商文字单行居中于柱下方，长名称可对称超出柱宽 */
+.ytitle{position:absolute;left:14px;top:50%;transform:rotate(-90deg) translateX(50%);transform-origin:left top;font-size:12px;color:var(--color-text-3)}/* v0.33：轴标题字号修正为与散点图纵轴标题一致（12px，v0.30 曾误按 11px 执行） */
+.xtitle{position:absolute;left:56px;right:36px;bottom:12px;text-align:center;font-size:12px;color:var(--color-text-3)}/* v0.32：位置参照散点图横轴标题——与卡片底部留 12px 间隙、与上方厂商文字留 ≥17px 间隙；v0.33：字号同纵轴标题及散点图轴标题统一为 12px */
+
+/* ==================== v0.29 ⑩ 复现方式筛选器 + ⑫ 发布时间-分数散点图 ==================== */
+.repro-row{display:flex;align-items:center;gap:12px;margin-bottom:16px}
+.repro-lbl{font-size:var(--fs-tip1);color:var(--color-text-3)}
+.repro-row .sel{width:184px}/* v0.30 ⑩：复现方式下拉筛选器定宽（复用全局 .sel 表单控件样式） */
+/* v0.31：.scat-hd/.scat-t/.scat-sub 已删除（散点图卡片标题与说明行按用户验收调整移除） */
 
 /* ==================== v0.26：精度测评榜单概览卡片（首页） ==================== */
 .ov-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
-.ov-card{background:#fff;border:1px solid var(--color-border);border-radius:var(--radius-card);padding:18px 20px;cursor:pointer;transition:border-color var(--duration-s),box-shadow var(--duration-s)}
-.ov-card:hover{border-color:var(--color-primary);box-shadow:var(--shadow-2)}
+.ov-card{background:#fff;border:1px solid var(--color-border);border-radius:var(--radius-card);padding:18px 20px;cursor:pointer;transition:border-color var(--duration-s) var(--easing-standard)}
+.ov-card:hover{border-color:var(--color-primary)}/* v0.35 评审修复 P2-3：卡片不加阴影（§3.3/§9.3），hover 仅描边变主色 */
 .ov-hd{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:8px}
-.ov-hd h3{font-size:var(--fs-text1);color:var(--color-text-1)}
+.ov-hd h3{font-size:var(--fs-tip1);color:var(--color-text-1)}
 .ov-info{font-size:var(--fs-tip);color:var(--color-text-3);line-height:22px;margin-bottom:12px;min-height:44px}
 .ov-rank{border-top:1px solid var(--color-border);padding-top:10px}
 .ov-rank-item{display:flex;align-items:center;gap:10px;padding:4px 0;font-size:var(--fs-tip)}
-.ov-rank-item .no{width:20px;height:20px;border-radius:var(--radius-control);background:var(--color-bg-control);color:var(--color-text-3);display:inline-flex;align-items:center;justify-content:center;font:500 12px var(--font-code);flex:none}
+.ov-rank-item .no{width:20px;height:20px;border-radius:var(--radius-control);background:var(--color-bg-control);color:var(--color-text-3);display:inline-flex;align-items:center;justify-content:center;font:var(--fw-bold) 12px var(--font-code);flex:none}
 .ov-rank-item.top .no{background:var(--color-primary);color:#fff}
 .ov-rank-item .nm{flex:1;color:var(--color-text-2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .ov-rank-item .sc{font:var(--fw-bold) var(--fs-tip)/1 var(--font-code);color:var(--color-primary)}
-/* v0.26：测试方法弹窗 */
-.method-link{color:var(--color-primary);text-decoration:underline;text-underline-offset:3px}
+/* v0.29 ⑪：测试方法弹窗——正文改为 Markdown 富文本（原「参数配置」表格与「制作方法」链接样式已删除） */
+.msec.md{max-height:56vh;overflow-y:auto;line-height:1.75;padding-right:4px}
+.msec.md h1{font-size:var(--fs-h5);color:var(--color-text-1);margin-bottom:10px}
+.msec.md h2{font-size:var(--fs-tip1);color:var(--color-text-1);margin:16px 0 6px;padding-left:8px;border-left:3px solid var(--color-primary)}
+.msec.md h3{font-size:var(--fs-tip1);color:var(--color-text-1);margin:12px 0 4px}
+.msec.md p{margin:6px 0}
+.msec.md ul,.msec.md ol{margin:6px 0 6px 22px}
+.msec.md li{margin:3px 0}
+.msec.md code{font-family:var(--font-code);font-size:12.5px;background:var(--color-bg-control);padding:1px 5px;border-radius:3px;color:var(--color-text-1)}
+.msec.md pre{background:#0F1720;color:#D6E2F0;padding:12px 14px;border-radius:var(--radius-card);overflow-x:auto;margin:8px 0;line-height:1.6}
+.msec.md pre code{background:none;padding:0;color:inherit;font-size:12.5px}
+.msec.md blockquote{border-left:3px solid var(--color-border-control);background:var(--color-bg-section);padding:6px 12px;color:var(--color-text-3);margin:8px 0}
+.msec.md table{width:100%;border-collapse:collapse;margin:8px 0;font-size:var(--fs-tip)}
+.msec.md th,.msec.md td{border:1px solid var(--color-border);padding:6px 10px;text-align:left}
+.msec.md th{background:var(--color-bg-section);color:var(--color-text-1);font-weight:var(--fw-bold)}
+.msec.md hr{border:0;border-top:1px solid var(--color-border);margin:14px 0}
 
 /* ==================== 弹层 ==================== */
 .modal{position:fixed;inset:0;background:rgba(2,9,20,.45);display:none;align-items:flex-start;justify-content:center;padding:40px 20px;z-index:200;overflow:auto}
 .modal.open{display:flex}
-.mbox{background:#fff;border-radius:var(--radius-card);width:100%;max-width:920px;box-shadow:var(--shadow-2)}
-.mhd{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;padding:20px 24px;border-bottom:1px solid var(--color-border)}
-.mhd h3{font-size:22px;color:var(--color-text-1)}
+.mbox{background:#fff;border:1px solid var(--color-border);border-radius:var(--radius-card);width:100%;max-width:920px;max-height:86vh;overflow:auto;box-shadow:var(--shadow-1)}/* v0.35 评审修复 P2-3：模态补 1px 描边、阴影降为 shadow-1、限高 86vh 内部滚动（对齐定稿 .modal-box 结构） */
+.mhd{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;padding:20px 24px;border-bottom:1px solid var(--color-border);position:sticky;top:0;background:#fff;z-index:2}/* v0.35 评审修复 P2-3：模态滚动时头部吸顶 */
+.mhd h3{font-size:var(--fs-h3);color:var(--color-text-1)}/* v0.35：22px 归入 --fs-h3（GCC 档同值），渲染不变 */
 .mhd .sub{font-size:var(--fs-tip);color:var(--color-text-3);margin-top:4px}
 .mclose{border:0;background:none;font-size:18px;color:var(--color-text-3);cursor:pointer;padding:4px 8px}
 .mclose:hover{color:var(--color-text-1)}
 .mbody{padding:8px 24px 24px}
 .msec{padding:16px 0;border-bottom:1px solid var(--color-border)}
 .msec:last-child{border-bottom:0}
-.msec h4{font-size:var(--fs-text1);color:var(--color-text-1);margin-bottom:12px}
+.msec h4{font-size:var(--fs-tip1);color:var(--color-text-1);margin-bottom:12px}
 
 /* ==================== hover 信息卡 ==================== */
 .hc-tip{position:fixed;z-index:300;display:none;background:#fff;border:1px solid var(--color-border);border-radius:var(--radius-card);box-shadow:var(--shadow-2);padding:12px 14px;min-width:240px;font-size:var(--fs-tip);line-height:22px;color:var(--color-text-2);pointer-events:none}
@@ -245,11 +260,11 @@ button{font-family:inherit}
         <svg class="ai-anim" viewBox="0 0 520 420" role="img" aria-label="AI 神经网络矢量动图">
           <defs>
             <radialGradient id="gGlow" cx="50%" cy="50%" r="50%">
-              <stop offset="0%" stop-color="rgba(8,105,218,.16)"/>
-              <stop offset="100%" stop-color="rgba(8,105,218,0)"/>
+              <stop offset="0%" stop-color="rgba(9,105,218,.16)"/>
+              <stop offset="100%" stop-color="rgba(9,105,218,0)"/>
             </radialGradient>
             <linearGradient id="gBar" x1="0" y1="1" x2="0" y2="0">
-              <stop offset="0%" stop-color="#0869DA"/>
+              <stop offset="0%" stop-color="#0969DA"/>
               <stop offset="100%" stop-color="#1488C6"/>
             </linearGradient>
           </defs>
@@ -257,7 +272,7 @@ button{font-family:inherit}
           <g class="orbit1"><circle cx="260" cy="210" r="168" fill="none" stroke="#D9DDE2" stroke-dasharray="3 7"/></g>
           <g class="orbit2"><circle cx="260" cy="210" r="128" fill="none" stroke="#C3C8CF" stroke-dasharray="2 6"/></g>
           <!-- 轨道粒子 -->
-          <circle r="5" fill="#0869DA">
+          <circle r="5" fill="#0969DA">
             <animateMotion dur="10s" repeatCount="indefinite" path="M260,42 A168,168 0 1,1 259.9,42 Z"/>
           </circle>
           <circle r="4" fill="#FA7305">
@@ -271,7 +286,7 @@ button{font-family:inherit}
             <line x1="260" y1="230" x2="370" y2="260"/><line x1="260" y1="270" x2="370" y2="210"/>
           </g>
           <!-- 神经网络节点 -->
-          <g fill="#fff" stroke="#0869DA" stroke-width="2">
+          <g fill="#fff" stroke="#0969DA" stroke-width="2">
             <circle class="node" cx="150" cy="150" r="6"/><circle class="node d1" cx="150" cy="210" r="6"/><circle class="node d2" cx="150" cy="270" r="6"/>
             <circle class="node d1" cx="260" cy="120" r="6"/><circle class="node d2" cx="260" cy="170" r="6"/><circle class="node d3" cx="260" cy="230" r="6"/><circle class="node d4" cx="260" cy="270" r="6"/>
             <circle class="node d2" cx="370" cy="160" r="6"/><circle class="node d3" cx="370" cy="210" r="6"/><circle class="node d4" cx="370" cy="260" r="6"/>
@@ -319,6 +334,14 @@ button{font-family:inherit}
           <button data-v="img">图表模式</button>
         </div>
       </div>
+      <!-- v0.30 ⑩：复现方式下拉筛选器（用户验收调整：由并排 seg 改为下拉筛选器；仍位于数据集页签上方、必选其一、无「全部」、默认官方论文复现、不设计数文字） -->
+      <div class="repro-row">
+        <span class="repro-lbl">复现方式：</span>
+        <select class="sel" id="accRepro" aria-label="复现方式">
+          <option value="official" selected>官方论文复现</option>
+          <option value="unified">统一方法复现</option>
+        </select>
+      </div>
       <div class="ctabs" id="accTabs"></div>
       <div id="accNumWrap" class="tblwrap">
         <table class="tbl">
@@ -328,7 +351,16 @@ button{font-family:inherit}
       </div>
       <div id="accImgWrap" class="accchart" style="display:none">
         <div class="ytitle">分数</div>
+        <!-- v0.31：柱状图横向坐标轴标注（横轴=模型名，用户验收调整：此前未标明） -->
+        <div class="xtitle">模型名</div>
         <div class="accgrid" id="accGrid"></div>
+      </div>
+      <!-- v0.29 ⑫ / v0.31：图表模式下柱状图下方散点图（列表模式隐藏；卡片标题与说明行已按用户验收调整删除，图表由内部轴标注「模型发布时间」「分数」自描述） -->
+      <div id="accScatterWrap" style="display:none;margin-top:24px">
+        <div class="chart-box">
+          <div id="accScatter"></div>
+          <div class="legend" id="accScatterLegend"></div><!-- v0.35 评审修复 P1-2：散点图「颜色=厂商」编码图例（复用全局 .legend/.dot 样式，JS 按当前数据集厂商填充） -->
+        </div>
       </div>
     </div>
   </div>
@@ -415,7 +447,7 @@ button{font-family:inherit}
       <!-- v0.26：页脚"工具"下放置四个文档入口（支持 PDF 浏览），删除原"技术白皮书" -->
       <div>
         <h5>工具</h5>
-        <a href="https://github.com/AISBench/benchmark" target="_blank" rel="noopener">代码仓（GitHub）</a>
+        <a href="https://github.com/AISBench/benchmark" target="_blank" rel="noopener">代码仓（GitHub）↗</a><!-- v0.35 P2-4：外链补 ↗（同顶栏「测评工具 ↗」约定） -->
         <a href="javascript:void(0)" onclick="openPdf('GB/T 45087—2024《人工智能 服务器系统性能测试方法》.pdf')">GB/T 45087—2024《人工智能 服务器系统性能测试方法》</a>
         <a href="javascript:void(0)" onclick="openPdf('GB/T 46346-2025《人工智能 计算中心 计算能力评估》.pdf')">GB/T 46346-2025《人工智能 计算中心 计算能力评估》</a>
         <a href="javascript:void(0)" onclick="openPdf('AISBench IEEE标准 2937-2022.pdf')">AISBench IEEE标准 2937-2022</a>
@@ -461,28 +493,15 @@ button{font-family:inherit}
 </div>
 <div class="hc-tip" id="tooltip"></div>
 
-<!-- v0.26：测试方法弹窗（参数配置表格 + 制作方法链接） -->
+<!-- v0.29 ⑪：测试方法弹窗——删除「参数配置」表格与「制作方法」链接，正文换成 Markdown 格式文本（渲染为富文本展示，每数据集一份占位文档） -->
 <div class="modal" id="methodModal" role="dialog" aria-modal="true" aria-label="测试方法">
   <div class="mbox" style="max-width:640px">
     <div class="mhd">
-      <div><h3 id="methodTitle" style="font-size:20px"></h3><div class="sub">该数据集榜单的测试方法与参数配置</div></div>
+      <div><h3 id="methodTitle" style="font-size:20px"></h3><div class="sub">该数据集榜单的测试方法说明</div></div>
       <button class="mclose" aria-label="关闭">✕</button>
     </div>
     <div class="mbody">
-      <div class="msec">
-        <h4>参数配置</h4>
-        <div class="tblwrap"><table class="tbl kv"><tbody>
-          <tr><td>topk</td><td class="mono">1</td></tr>
-          <tr><td>shots</td><td class="mono">0</td></tr>
-          <tr><td>temperature</td><td class="mono">0.0</td></tr>
-          <tr><td>max_tokens</td><td class="mono">1024</td></tr>
-          <tr><td>scoring</td><td class="mono">exact_match</td></tr>
-        </tbody></table></div>
-      </div>
-      <div class="msec" style="border-bottom:0">
-        <h4>制作方法</h4>
-        <a class="method-link" href="javascript:void(0)" onclick="alert('制作方法文档（占位链接）')">查看制作方法 →</a>
-      </div>
+      <div class="msec md" id="methodMd" style="border-bottom:0"></div>
     </div>
   </div>
 </div>
@@ -499,6 +518,66 @@ function showTip(html,x,y){
   tip.style.left=Math.max(8,px)+"px";tip.style.top=Math.max(8,y+16)+"px";
 }
 function hideTip(){tip.style.display="none";}
+/* ==================== v0.29 ⑪：轻量 Markdown 渲染器（弹窗 md 正文 → 富文本；自包含无外部依赖，DEMO 离线可用） ==================== */
+/* 支持：#~#### 标题、段落（连续行合并）、无序/有序列表、管道表格、``` 围栏代码、引用块、--- 分隔线、行内 `code`、**加粗**、[链接](url) */
+function mdInline(t){
+  return String(t).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")
+    .replace(/`([^`]+)`/g,"<code>$1</code>")
+    .replace(/\*\*([^*]+)\*\*/g,"<strong>$1</strong>")
+    .replace(/\[([^\]]+)\]\(([^)\s]+)\)/g,'<a href="$2">$1</a>');
+}
+function mdRender(src){
+  var lines=String(src).split("\n"),out=[],i=0;
+  function row(l){return l.trim().replace(/^\||\|$/g,"").split("|");}
+  function isSep(l){return /^\s*\|?\s*:?-{3,}/.test(l)&&/^[\s|:\-]+$/.test(l);}
+  function esc(s){return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");}
+  while(i<lines.length){
+    var ln=lines[i];
+    if(!ln.trim()){i++;continue;}
+    if(/^```/.test(ln.trim())){
+      var buf=[];i++;
+      while(i<lines.length&&!/^```/.test(lines[i].trim())){buf.push(lines[i]);i++;}
+      i++;
+      out.push("<pre><code>"+esc(buf.join("\n"))+"</code></pre>");
+      continue;
+    }
+    var h=ln.match(/^(#{1,4})\s+(.*)$/);
+    if(h){out.push("<h"+h[1].length+">"+mdInline(h[2])+"</h"+h[1].length+">");i++;continue;}
+    if(/^\s*(-{3,}|\*{3,})\s*$/.test(ln)){out.push("<hr>");i++;continue;}
+    if(/^\s*>/.test(ln)){
+      var qb=[];
+      while(i<lines.length&&/^\s*>/.test(lines[i])){qb.push(mdInline(lines[i].replace(/^\s*>\s?/,"")));i++;}
+      out.push("<blockquote>"+qb.join("<br>")+"</blockquote>");
+      continue;
+    }
+    if(/^\s*\|.*\|\s*$/.test(ln)&&i+1<lines.length&&isSep(lines[i+1])){
+      var th=row(ln).map(function(c){return "<th>"+mdInline(c.trim())+"</th>";}).join("");
+      i+=2;var trs=[];
+      while(i<lines.length&&/^\s*\|.*\|\s*$/.test(lines[i])){
+        trs.push("<tr>"+row(lines[i]).map(function(c){return "<td>"+mdInline(c.trim())+"</td>";}).join("")+"</tr>");i++;
+      }
+      out.push("<table><thead><tr>"+th+"</tr></thead><tbody>"+trs.join("")+"</tbody></table>");
+      continue;
+    }
+    if(/^\s*[-*]\s+/.test(ln)){
+      var ul=[];
+      while(i<lines.length&&/^\s*[-*]\s+/.test(lines[i])){ul.push("<li>"+mdInline(lines[i].replace(/^\s*[-*]\s+/,""))+"</li>");i++;}
+      out.push("<ul>"+ul.join("")+"</ul>");
+      continue;
+    }
+    if(/^\s*\d+[.)]\s+/.test(ln)){
+      var ol=[];
+      while(i<lines.length&&/^\s*\d+[.)]\s+/.test(lines[i])){ol.push("<li>"+mdInline(lines[i].replace(/^\s*\d+[.)]\s+/,""))+"</li>");i++;}
+      out.push("<ol>"+ol.join("")+"</ol>");
+      continue;
+    }
+    var pb=[];
+    while(i<lines.length&&lines[i].trim()&&!/^\s*(#{1,4}\s|>|```|[-*]\s|\d+[.)]\s|\||-{3,}\s*$|\*{3,}\s*$)/.test(lines[i])){pb.push(lines[i]);i++;}
+    if(!pb.length){i++;continue;}
+    out.push("<p>"+pb.map(mdInline).join("<br>")+"</p>");
+  }
+  return out.join("");
+}
 var pdfName="";
 /* v0.26：点击文档打开 PDF 浏览（预览+下载），与主站行为一致 */
 function openPdf(name){
@@ -517,6 +596,8 @@ bindModal(document.getElementById("pdfModal"));
 bindModal(document.getElementById("methodModal"));
 function openMethod(ds){
   document.getElementById("methodTitle").textContent="测试方法 · "+ds;
+  /* v0.29 ⑪：正文渲染该数据集的 Markdown 测试方法文档（占位内容） */
+  document.getElementById("methodMd").innerHTML=mdRender(ACC_MD[ds]);
   document.getElementById("methodModal").classList.add("open");
 }
 
@@ -525,6 +606,8 @@ var PAGES=["home","acc","perf"];
 function go(p){
   PAGES.forEach(function(x){document.getElementById("page-"+x).style.display=(x===p)?"":"none";});
   ["home","acc","perf"].forEach(function(x){var b=document.getElementById("nav-"+x);if(b)b.classList.toggle("on",x===p);});
+  /* v0.35 评审修复 P2-16：切页时按当前实际宽度重绘散点图（原先仅 window resize 重绘，从隐藏页切入时 clientWidth 采样失真） */
+  if(p==="acc"&&accView==="img")renderAccScatter(accRows());
   window.scrollTo(0,0);
 }
 
@@ -557,6 +640,15 @@ var ACC_SCORES={
   "AutomationBench":[55.3,54.1,53.6,51.2,50.4,49.1,47.8,46.2,45.3,44.5,43.6,42.4,41.5,40.3,39.2],
   "MMMUPro":[74.9,74.2,74.0,72.7,72.3,71.1,69.6,68.4,67.8,67.1,66.3,65.5,64.8,63.9,62.7]
 };
+/* v0.29 ⑩：统一方法复现分数 = 官方论文复现分数 + 确定性占位偏移（-1.6 ~ +1.6，步长 0.4），切换口径后排名发生可见变化；
+   首页「精度测评榜单概览」卡片固定官方论文复现口径（直接使用 ACC_SCORES），不随此筛选器联动 */
+var ACC_SCORES_U={};
+ACC_DS.forEach(function(ds,di){
+  ACC_SCORES_U[ds]=ACC_SCORES[ds].map(function(v,mi){
+    return Math.max(0,Math.round((v+(((di*7+mi*5)%9)-4)*0.4)*10)/10);
+  });
+});
+function accScore(ds,mi){return (accRepro==="unified"?ACC_SCORES_U:ACC_SCORES)[ds][mi];}
 var ACC_EVAL={"GPQA Diamond":"2026-10-18","DeepSWE":"2026-10-20","TerminalBench2.1":"2026-10-22","TerminalBench4.0":"2026-10-24","AutomationBench":"2026-10-26","MMMUPro":"2026-10-28"};
 /* v0.26：数据集简介（用于首页精度测评榜单概览卡片） */
 var ACC_DESC={
@@ -567,10 +659,72 @@ var ACC_DESC={
   "AutomationBench":"自动化任务评测，考察模型在浏览器自动化、RPA 流程中的执行能力",
   "MMMUPro":"多模态理解进阶评测，考察模型在跨模态图文推理与学科综合理解能力"
 };
-var BAR_COLORS=["#0869DA","#CE5907","#0BB151","#984BF6","#E0431F","#2E53FA","#1488C6","#B7356C","#0E9488","#D4A017","#5B5BD6","#C2418F","#6B8E23","#4A90D9","#A0522D"];
-var accDs=0,accView="num";
+/* v0.29 ⑪：每数据集一份 Markdown 测试方法文档（占位内容），弹窗中经 mdRender 渲染为富文本 */
+var ACC_MD_META={
+  "GPQA Diamond":{task:"研究生级科学选择题问答（Google-Proof，Diamond 子集）",size:"198 道试题",field:"物理、化学、生物等学科",metric:"平均准确率（Accuracy）",run:"gpqa-diamond",ref:"Reinhold et al., 2024. GPQA: A Graduate-Level Google-Proof Q&A Benchmark."},
+  "DeepSWE":{task:"仓库级软件工程问题求解",size:"974 个编程任务",field:"Python 多仓库工程与单元测试判定",metric:"通过率（Pass@1）",run:"deepswe",ref:"DeepSWE Benchmark 技术报告（占位引用）."},
+  "TerminalBench2.1":{task:"终端命令行与系统编程任务",size:"320 个任务",field:"Linux CLI、Shell 脚本与系统管理",metric:"任务完成率",run:"terminal-bench-2.1",ref:"Terminal-Bench 2.1 任务集文档（占位引用）."},
+  "TerminalBench4.0":{task:"终端命令行任务（扩展版）",size:"480 个任务",field:"容器化环境、多步骤自动化与复杂系统运维",metric:"任务完成率",run:"terminal-bench-4.0",ref:"Terminal-Bench 4.0 任务集文档（占位引用）."},
+  "AutomationBench":{task:"办公与业务流程自动化任务",size:"260 个任务",field:"浏览器自动化、表单处理与跨应用流程编排",metric:"任务完成率",run:"automation-bench",ref:"AutomationBench 评测白皮书（占位引用）."},
+  "MMMUPro":{task:"大学水平多模态理解与推理",size:"1,730 道试题",field:"跨学科图文推理与综合理解",metric:"平均准确率（Accuracy）",run:"mmmu-pro",ref:"Yue et al., 2024. MMMU-Pro: A More Robust Multi-Discipline Multimodal Understanding Benchmark."}
+};
+var ACC_MD={};
+ACC_DS.forEach(function(ds){
+  var m=ACC_MD_META[ds];
+  ACC_MD[ds]=[
+    "> 本文档为 DEMO 占位内容，用于演示 Markdown 正文的富文本渲染效果；正式版将替换为该数据集的实际评测方法文档。",
+    "",
+    "## 方法概述",
+    "",
+    "**"+ds+"** 是面向"+m.task+"的基准测试集，共包含 **"+m.size+"**，覆盖"+m.field+"等方向。数据集定位："+ACC_DESC[ds]+"。榜单以 **"+m.metric+"** 作为主指标，分数范围 0 – 100。",
+    "",
+    "## 评测流程",
+    "",
+    "1. 从标准题库拉取题目，按统一 Prompt 模板渲染为模型输入；",
+    "2. 在统一评测集群上批量执行推理，采用贪心解码；",
+    "3. 对模型输出进行后处理：答案抽取、代码执行或结果比对；",
+    "4. 按题型汇总"+m.metric+"，经复核后写入榜单。",
+    "",
+    "评测命令示例：",
+    "",
+    "```bash",
+    "aisbench eval \\",
+    "  --dataset "+m.run+" \\",
+    "  --model <model_id> \\",
+    "  --shots 0 --temperature 0.0",
+    "```",
+    "",
+    "## 计分规则",
+    "",
+    "| 项目 | 说明 |",
+    "| --- | --- |",
+    "| 主指标 | "+m.metric+" |",
+    "| 判分方式 | 精确匹配 / 执行通过制 |",
+    "| 分数处理 | 0 – 100，保留 1 位小数 |",
+    "| 无效样本 | 计 0 分，不安排重测 |",
+    "",
+    "## 复现方式说明",
+    "",
+    "本榜单支持两种复现口径，可在榜单上方「复现方式」切换，榜单与图表同步更新：",
+    "",
+    "- **官方论文复现**：采纳模型官方论文 / 技术报告公布的评测结果，推理参数以官方原文为准；",
+    "- **统一方法复现**：所有模型按上述统一评测框架与参数重跑，口径完全对齐，更适合横向比较。",
+    "",
+    "两种口径的分数可能存在小幅差异，属正常现象。",
+    "",
+    "---",
+    "",
+    "## 参考引用",
+    "",
+    "- "+m.ref,
+    "- [AISBench 评测方法白皮书（占位链接）](javascript:;)"
+  ].join("\n");
+});
+/* v0.35 评审修复 P1-2：BAR_COLORS 已删除——柱状图单色化（柱体统一主色），原「按名次一色」15 色映射与散点图「颜色=厂商」构成双重编码，且 #C2418F/#FA7305 与 百川智能/阶跃星辰 厂商品牌色撞色；名次信息已由分数降序+柱内数字标注完整表达 */
+/* v0.29 ⑩：新增复现方式口径状态，默认官方论文复现（accRepro="official"） */
+var accDs=0,accView="num",accRepro="official";
 function accRows(){
-  return ACC_MODELS.map(function(m,i){return Object.assign({},m,{score:ACC_SCORES[ACC_DS[accDs]][i]});})
+  return ACC_MODELS.map(function(m,i){return Object.assign({},m,{score:accScore(ACC_DS[accDs],i)});})
     .sort(function(a,b){return b.score-a.score;});
 }
 function renderAccTabs(){
@@ -585,9 +739,9 @@ function renderAcc(){
   renderAccTabs();
   var rows=accRows();
   /* v0.26：删除小字说明行；分数列后新增"测试方法"列 */
-  var numWrap=document.getElementById("accNumWrap"),imgWrap=document.getElementById("accImgWrap");
+  var numWrap=document.getElementById("accNumWrap"),imgWrap=document.getElementById("accImgWrap"),scatWrap=document.getElementById("accScatterWrap");
   if(accView==="num"){
-    numWrap.style.display="";imgWrap.style.display="none";
+    numWrap.style.display="";imgWrap.style.display="none";scatWrap.style.display="none";
     document.getElementById("accNumBody").innerHTML=rows.map(function(r,i){
       return '<tr><td><span class="rank'+(i<3?" top":"")+'">'+(i+1)+'</span></td>'
         +'<td><div class="mname">'+r.name+'</div><div class="msub">'+r.tag+' · '+r.vendor+'</div></td>'
@@ -596,7 +750,7 @@ function renderAcc(){
         +'<td><a href="javascript:void(0)" onclick="openMethod(\''+ACC_DS[accDs].replace(/'/g,"\\'")+'\')">查看</a></td></tr>';
     }).join("");
   }else{
-    numWrap.style.display="none";imgWrap.style.display="";
+    numWrap.style.display="none";imgWrap.style.display="";scatWrap.style.display="";
     var ymax=Math.ceil(Math.max.apply(null,rows.map(function(r){return r.score;}))/10)*10,grid=document.getElementById("accGrid");
     var gl="";
     for(var k=0;k<=5;k++){
@@ -605,19 +759,107 @@ function renderAcc(){
     }
     gl+='<div class="accbars">'+rows.map(function(r,i){
       var h=Math.round(r.score/ymax*100);
-      return '<div class="accbar" style="height:'+h+'%;background:'+BAR_COLORS[i%BAR_COLORS.length]+'">'
+      return '<div class="accbar" style="height:'+h+'%;background:var(--color-primary)">'/* v0.35 P1-2：柱体统一主色（原 BAR_COLORS 按名次取色） */
         +'<span class="val">'+r.score.toFixed(1)+'</span>'
         +'<span class="lbl">'+r.name+'</span><span class="ven">'+r.vendor+'</span></div>';
     }).join("")+'</div>';
     grid.innerHTML=gl;
+    /* v0.29 ⑫：图表模式下同步渲染下方散点图（数据集页签 × 复现方式联动） */
+    renderAccScatter(rows);
   }
 }
+/* ==================== v0.29 ⑫：散点图「模型发布时间 vs 分数」（图表模式专用，位于柱状图下方） ==================== */
+/* 点标注的简化 logo：厂商首字圆徽 + 品牌色（同厂商同色；正式版替换为官方 logo 素材） */
+var VENDOR_LOGO={
+  "deepseek":{ch:"D",c:"#4D6BFE"},"NVIDIA":{ch:"N",c:"#76B900"},"qwen":{ch:"Q",c:"#9254DE"},
+  "zhipuai":{ch:"Z",c:"#2F54EB"},"ByteDance":{ch:"B",c:"#325AB4"},"Moonshot AI":{ch:"M",c:"#1F1F2E"},
+  "MiniMax":{ch:"M",c:"#E8A33D"},"OpenAI":{ch:"O",c:"#10A37F"},"Anthropic":{ch:"A",c:"#D97757"},
+  "Google":{ch:"G",c:"#4285F4"},"腾讯":{ch:"腾",c:"#0052D9"},"阶跃星辰":{ch:"阶",c:"#FA7305"},
+  "百川智能":{ch:"百",c:"#C2418F"},"Meta":{ch:"M",c:"#0866FF"}
+};
+function renderAccScatter(rows){
+  var box=document.getElementById("accScatter");
+  var W=Math.max(640,box.clientWidth||1050),H=380,L=56,R=26,T=26,B=58,iw=W-L-R,ih=H-T-B,DAY=864e5;
+  /* Y 轴域：自适应步长（1/2/5/10），网格线 4~6 条，虚线样式与柱状图一致 */
+  var mn=Infinity,mx=-Infinity;
+  rows.forEach(function(r){if(r.score<mn)mn=r.score;if(r.score>mx)mx=r.score;});
+  var steps=[1,2,5,10],step=10,si;
+  for(si=0;si<steps.length;si++){
+    step=steps[si];
+    if(Math.ceil(mx/step)*step-Math.floor(mn/step)*step<=6*step)break;
+  }
+  var lo=Math.floor(mn/step)*step,hi=Math.ceil(mx/step)*step;
+  if(hi===lo)hi+=step;
+  /* X 轴域：最早至最晚发布时间，两侧各留半个月 */
+  var ts=rows.map(function(r){return new Date(r.rel.replace(/-/g,"/")).getTime();});
+  var x0=Math.min.apply(null,ts)-15*DAY,x1=Math.max.apply(null,ts)+15*DAY;
+  function px(t){return L+(t-x0)/(x1-x0)*iw;}
+  function py(v){return T+ih-(v-lo)/(hi-lo)*ih;}
+  var s='<svg width="100%" height="'+H+'" viewBox="0 0 '+W+' '+H+'" xmlns="http://www.w3.org/2000/svg" style="display:block">';
+  for(var v=lo;v<=hi+1e-9;v+=step){
+    var y=py(v);
+    s+='<line x1="'+L+'" y1="'+y.toFixed(1)+'" x2="'+(W-R)+'" y2="'+y.toFixed(1)+'" stroke="rgba(0,0,0,.08)" stroke-dasharray="4 4"/>';
+    s+='<text x="'+(L-10)+'" y="'+(y+4).toFixed(1)+'" text-anchor="end" font-size="11" fill="rgba(0,0,0,.4)">'/* v0.35 评审修复 P1-1：散点图纵轴刻度填充与性能页统一为 rgba 灰阶，去硬编码字体族（继承 body 字体栈） */+v+'</text>';
+  }
+  s+='<text x="16" y="'+(T+ih/2)+'" text-anchor="middle" font-size="12" fill="rgba(0,0,0,.6)" transform="rotate(-90 16 '+(T+ih/2)+')">分数</text>';
+  /* X 轴：按自然月生成刻度，标签 yy/MM，覆盖最早至最晚发布时间 */
+  var c0=new Date(x0),cur=new Date(c0.getFullYear(),c0.getMonth(),1);
+  if(cur.getTime()<x0)cur=new Date(cur.getFullYear(),cur.getMonth()+1,1);
+  while(cur.getTime()<=x1){
+    var tx=px(cur.getTime());
+    s+='<line x1="'+tx.toFixed(1)+'" y1="'+(T+ih)+'" x2="'+tx.toFixed(1)+'" y2="'+(T+ih+5)+'" stroke="rgba(0,0,0,.25)"/>';
+    s+='<text x="'+tx.toFixed(1)+'" y="'+(T+ih+20)+'" text-anchor="middle" font-size="11" fill="rgba(0,0,0,.4)">'/* v0.35 评审修复 P2-6：横轴刻度数字 10→11px，兑现 PRD #48「刻度数字两图均维持 11px」 */+String(cur.getFullYear()).slice(-2)+"/"+("0"+(cur.getMonth()+1)).slice(-2)+'</text>';
+    cur=new Date(cur.getFullYear(),cur.getMonth()+1,1);
+  }
+  s+='<line x1="'+L+'" y1="'+(T+ih)+'" x2="'+(W-R)+'" y2="'+(T+ih)+'" stroke="rgba(0,0,0,.25)"/>';
+  s+='<text x="'+(L+iw/2)+'" y="'+(T+ih+42)+'" text-anchor="middle" font-size="12" fill="rgba(0,0,0,.6)">模型发布时间</text>';
+  /* 数据点：同厂商 + 同发布日期横向微偏移防重叠（如 DeepSeek V4 Pro / V4 Flash 同为 2026-08-28） */
+  var groups={};
+  rows.forEach(function(r){var k=r.vendor+"|"+r.rel;(groups[k]=groups[k]||[]).push(r);});
+  Object.keys(groups).forEach(function(k){
+    var g=groups[k],n=g.length;
+    g.forEach(function(r,gi){
+      var t=new Date(r.rel.replace(/-/g,"/")).getTime();
+      var x=px(t)+(n>1?(gi-(n-1)/2)*24:0),y=py(r.score);
+      var lg=VENDOR_LOGO[r.vendor]||{ch:String(r.vendor).charAt(0).toUpperCase(),c:"rgba(0,0,0,.6)"};
+      var td=encodeURIComponent(JSON.stringify({n:r.name,v:r.vendor,d:r.rel,p:r.param,s:r.score}));
+      s+='<g ais-tip="'+td+'" style="cursor:pointer">'
+        +'<circle cx="'+x.toFixed(1)+'" cy="'+y.toFixed(1)+'" r="17" fill="transparent"/>'
+        +'<circle cx="'+x.toFixed(1)+'" cy="'+y.toFixed(1)+'" r="11" fill="'+lg.c+'" stroke="#fff" stroke-width="2"/>'
+        +'<text x="'+x.toFixed(1)+'" y="'+y.toFixed(1)+'" text-anchor="middle" dominant-baseline="central" font-size="11" font-weight="700" fill="#fff" style="pointer-events:none">'+lg.ch+'</text>'
+        +'</g>';
+    });
+  });
+  s+='</svg>';
+  box.innerHTML=s;
+  /* v0.35 评审修复 P1-2：散点图「颜色=厂商」编码图例——复用全局 .legend/.dot 样式；同厂商同色、与图中厂商圆徽一一对应；顺序=按分数降序的厂商首次出现序 */
+  var vs=[],vseen={};
+  rows.forEach(function(r){if(!vseen[r.vendor]){vseen[r.vendor]=1;vs.push(r.vendor);}});
+  document.getElementById("accScatterLegend").innerHTML=vs.map(function(v){
+    var lg=VENDOR_LOGO[v]||{c:"rgba(0,0,0,.6)"};
+    return '<span><span class="dot" style="background:'+lg.c+'"></span>'+v+'</span>';
+  }).join("");
+  /* 悬停信息卡：模型名（加粗）+ 厂商、发布时间、参数量（次行）+ 分隔线 + 分数，沿用 ais-tip + showTip 机制 */
+  box.querySelectorAll("[ais-tip]").forEach(function(g){
+    g.addEventListener("mouseover",function(e){
+      var d=JSON.parse(decodeURIComponent(g.getAttribute("ais-tip")));
+      showTip('<span class="hc">'+d.n+'</span><br><span class="hc-sub">'+d.v+' · '+d.d+' · '+d.p+'</span><div class="sep"></div><b>分数：</b><span class="mono">'+d.s.toFixed(1)+'</span>',e.clientX,e.clientY);
+    });
+    g.addEventListener("mouseout",hideTip);
+  });
+}
+window.addEventListener("resize",function(){if(accView==="img")renderAccScatter(accRows());});
 document.querySelectorAll("#accView button").forEach(function(b){
   b.addEventListener("click",function(){
     accView=b.dataset.v;
     document.querySelectorAll("#accView button").forEach(function(x){x.classList.toggle("active",x===b);});
     renderAcc();
   });
+});
+/* v0.30 ⑩：复现方式下拉筛选器（用户验收调整：由并排 seg 改为下拉；两态单选无「全部」，默认官方论文复现），全局作用于榜单表格与两种图表 */
+document.getElementById("accRepro").addEventListener("change",function(){
+  accRepro=this.value;
+  renderAcc();
 });
 renderAcc();
 
