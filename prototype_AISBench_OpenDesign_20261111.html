@@ -712,7 +712,7 @@ a.od-nlink.od-nlink:hover{color:var(--o-color-primary1);text-decoration:none}
   <div class="sec alt"><!-- v0.37：内联 padding-top:8px 删除——用户示例间距修复：hero-mini 底部分隔线与「数据集基准排行榜」标题之间恢复主页面 .sec 的 56px 竖向节奏 -->
     <div class="wrap">
       <div class="sec-hd">
-        <div><h2>数据集基准排行榜</h2><div class="ssub">切换数据集与视图，按分数从高到低排序</div></div>
+        <div><h2>数据集基准排行榜</h2></div>
         <!-- 🔶 .seg#accView → OTab variant="button" round="pill"（v-model 数字索引；panes 仅承载页签，正文由下方 v-show 承接） -->
         <o-tab class="od-seg" id="accView" variant="button" round="pill" transition="" v-model="accViewIdx">
           <o-tab-pane label="列表模式" :value="0"></o-tab-pane><!-- 缺省 value 会以 label 字符串作页签标识，与数字 v-model 不匹配（无选中态且切换崩溃），显式绑定数字索引 -->
@@ -756,7 +756,7 @@ a.od-nlink.od-nlink:hover{color:var(--o-color-primary1);text-decoration:none}
   </div>
 </section>
 
-<!-- ==================== 性能榜单（对比分析 + 测评记录表 + 小模型表格） ==================== -->
+<!-- ==================== 性能榜单（推理性能 v0.49 前名对比分析 + 测评记录表 + 小模型表格） ==================== -->
 <section class="page" :class="{ show: page === 'perf' }" id="page-perf"><!-- v0.37：内联 display:none 删除，显隐改 .page/.show class 机制（主页面 L59） -->
   <div class="hero mini">
     <div class="wrap">
@@ -769,7 +769,7 @@ a.od-nlink.od-nlink:hover{color:var(--o-color-primary1);text-decoration:none}
   <div class="sec alt"><!-- v0.37：内联 padding-top:8px 删除——用户示例间距修复：hero-mini 底部分隔线与「数据集基准排行榜」标题之间恢复主页面 .sec 的 56px 竖向节奏 -->
     <div class="wrap">
       <div class="sec-hd">
-        <div><h2>对比分析</h2><div class="ssub">数据源：筛选器组合命中记录</div></div>
+        <div><h2>推理性能</h2></div><!-- v0.49 用户指令：性能榜单「对比分析」改名「推理性能」 -->
       </div>
       <!-- v0.42 用户验收：4 个筛选器改规定组件 OSelect 默认形态（模型单选可搜索；芯片类型/精度多选可清除；上下文单选）；
            原 ODropdown+OButton.od-fdd-btn 摹写与嵌套面板（搜索框/radio/checkbox/清除按钮）整体移除；
@@ -797,9 +797,9 @@ a.od-nlink.od-nlink:hover{color:var(--o-color-primary1);text-decoration:none}
         <o-tab-pane label="吞吐 vs TTFT 时延" :value="1"></o-tab-pane>
         <o-tab-pane label="吞吐 vs 端到端时延" :value="2"></o-tab-pane>
       </o-tab>
-      <!-- 🛠 折线图：renderAisChart 逐字 innerHTML 注入（#aisAxisNote/#aisChart/#aisLegend 保持原 id；内联 overflow-x:auto → .od-chart-scroll） -->
+      <!-- 🛠 折线图：renderAisChart 逐字 innerHTML 注入（#aisChart/#aisLegend 保持原 id；内联 overflow-x:auto → .od-chart-scroll；v0.48 移除 #aisAxisNote 轴说明） -->
       <div class="chart-box">
-        <div class="chart-hd"><span class="t" id="aisAxisNote"></span></div>
+        <!-- v0.48 用户指令：删除轴说明文字（横轴=…节点=并发 1/8/16/32）→ .chart-hd 空壳与 JS 赋值一并移除；.chart-hd CSS(L155-156) 留作僵尸 -->
         <div id="aisChart" class="od-chart-scroll"></div>
         <div class="legend" id="aisLegend"></div>
       </div>
@@ -809,7 +809,7 @@ a.od-nlink.od-nlink:hover{color:var(--o-color-primary1);text-decoration:none}
   <div class="sec">
     <div class="wrap">
       <div class="sec-hd">
-        <div><h2>测评记录表</h2><div class="ssub">每页 10 条 · 查看打开详细报告弹层</div></div>
+        <div><h2>测评记录表</h2></div>
       </div>
       <!-- 🔶 .tblwrap>table.tbl → ODataTable（全量 12 条分页切片 aisPageRows，行「查看」formatter VNode）；.pager#aisPager → OPagination（prev/next 文本经④层 ::after 承接；.pg-note 走 #total 插槽） -->
       <o-data-table class="od-tbl" :columns="aisColumns" :data="aisPageRows" row-key="id" border="row-frame" highlight-current-row></o-data-table>
@@ -824,7 +824,7 @@ a.od-nlink.od-nlink:hover{color:var(--o-color-primary1);text-decoration:none}
   <div class="sec alt">
     <div class="wrap">
       <div class="sec-hd">
-        <div><h2>小模型表格</h2><div class="ssub">面向小模型的准确率 / 时延 / 吞吐测评记录</div></div>
+        <div><h2>小模型表格</h2></div>
       </div>
       <!-- 🔶 同上 → ODataTable（v0.43：12 条分页切片 smPageRows，每页 10 条与测评记录表等高）+ OPagination（复刻 #aisPager 配方） -->
       <o-data-table class="od-tbl" :columns="smColumns" :data="smPageRows" row-key="id" border="row-frame" highlight-current-row></o-data-table>
@@ -1120,7 +1120,7 @@ var VENDOR_LOGO={
   "百川智能":{ch:"百",c:"#C2418F"},"Meta":{ch:"M",c:"#0866FF"}
 };
 
-/* ==================== 性能榜单：对比分析（照搬原站逻辑） ==================== */
+/* ==================== 性能榜单：推理性能（v0.49 前名对比分析；照搬原站逻辑） ==================== */
 var AIS_MODELS=["DeepSeek R1","DeepSeek V4 Pro","DeepSeek V4 Flash","Kimi K3","GLM5.2","Qwen3 32B"];
 /* 🔶 原型 L895 `var aisModel="DeepSeek R1"`（状态）→ Vue data aisModel（默认值逐字保持） */
 var CHIP_AIS=[["Nvidia","GB300 NVL72","TRTLLM"],["华为","Atlas 800I A2","CANN"],["寒武纪","MLU590","MagicMind"]];
@@ -1265,7 +1265,6 @@ function renderAccScatter(rows){
 /* 🔶 原型 L969-970 `function renderAisChart(){var recs=aisFiltered(),v=AIS_VIEWS[aisView];...}` → 签名显式化 renderAisChart(recs,v)
   （全局状态读取改为入参；构建代码逐字）；调用点 = mounted 初始渲染 + 筛选器/视图 watcher，等价于原型 aisApply() 与 [data-av] 接线 */
 function renderAisChart(recs,v){
-  document.getElementById("aisAxisNote").textContent="横轴="+v.xl+"；纵轴="+v.yl+"；每条折线=一条提交记录（折线数量不限），节点=并发 1/8/16/32";
   var box=document.getElementById("aisChart"),leg=document.getElementById("aisLegend");
   if(!recs.length){box.innerHTML='<p class="none">当前筛选组合无命中记录，请调整筛选器。</p>';leg.innerHTML="";return;}
   var W=1040,H=380,L=80,Rp=30,T=24,B=52;
