@@ -1,0 +1,1598 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-o-theme="e.light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AISBench · AI 推理性能测评工具</title>
+<!-- ① 主题 token（内部 @import responsive.token.css，无需手动引入） -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@opensig/opendesign-token@0.1.1/themes/e.light.token.css">
+<!-- ② 组件样式 -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@opensig/opendesign@1.2.7-sp3/dist/index.min.css">
+<!-- ③ HarmonyOS 字体 -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@opensig/opendesign-token@0.1.1/fonts/font-harmony.css">
+<!-- ④ JS：vue 3.5.45 → vueuse（core + shared，二者必须同时引入）→ dayjs(+插件) → 垫片 → opendesign UMD -->
+<script src="https://cdn.jsdelivr.net/npm/vue@3.5.45/dist/vue.global.prod.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@vueuse/core@10.11.1/index.iife.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@vueuse/shared@10.11.1/index.iife.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/dayjs@1.11.13/dayjs.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/dayjs@1.11.13/plugin/customParseFormat.js"></script>
+<script>
+window.process = window.process || { env: { NODE_ENV: 'production' } };
+window['dayjs/plugin/customParseFormat'] = { js: window.dayjs_plugin_customParseFormat };
+</script>
+<script src="https://cdn.jsdelivr.net/npm/@opensig/opendesign@1.2.7-sp3/dist/opendesign.min.js"></script>
+<script>
+/* 加载守卫：关键依赖任一缺失时显式横幅报错（正常加载时完全静默，不影响任何设计内容） */
+(function(){var m=[];if(!window.Vue){m.push('Vue 未加载');}else if(typeof Vue.useTemplateRef!=='function'){m.push('Vue 版本过低（需≥3.5，当前 '+Vue.version+'）');}if(!window.VueUse||typeof VueUse.toValue!=='function'){m.push('VueUse 不完整（缺 @vueuse/shared）');}if(!window.dayjs){m.push('dayjs 未加载');}if(!window.opendesign){m.push('OpenDesign 未加载');}if(m.length){var d=document.createElement('div');d.style.cssText='position:fixed;top:0;left:0;right:0;z-index:99999;background:#d93026;color:#fff;padding:10px 16px;font:14px/1.6 sans-serif;text-align:center';d.textContent='⚠ 依赖加载失败：'+m.join('；')+' —— 请检查网络（CDN：jsdelivr.net）后刷新页面';document.addEventListener('DOMContentLoaded',function(){document.body.appendChild(d);});}})();
+</script>
+<style>
+/* ==========================================================================
+   AISBench · OpenDesign 单文件 DEMO — 样式表
+   设计真值来源：design/prototype_AISBench_20261104.html（v0.37 定稿，
+   MD5 B6CB09793B13C92F5A7E43DA4E737E2B），逐条移植，设计不做任何改变。
+   四层结构：
+     ① 🔶 token 映射层 —— HiFloat 色板 → e.light 语义 token（--o-*），
+        全站唯一颜色覆盖出口（下方 :root 一个块）
+     ② 🛠 原型 HiFloat :root 逐字移植（--color-* 原名保留，供自绘区块消费）
+     ③ 🛠 原型样式逐字移植（自绘区块）。被 O 组件替换的规则已移除，由
+        第④层等价适配：.badge / .btn* / .fdd* / select.sel / .ctabs / .seg /
+        .tag* / .pager / .pg-btn* / .modal / .mbox / .repro-row .sel
+     ④ 🔶 O 组件 scoped 适配层（.od-* 前缀；双类名 0,2,0 特异性按源顺序
+        覆盖库默认；无 !important。8px 圆角、736px 胶囊、13px 紧凑字号等
+        非颜色字面值在 e.light token 中无对应档位，按字面记录）
+   ========================================================================== */
+
+/* ---------- ① token 映射层（全站唯一 :root 覆盖块） ----------
+   本块 --o-* 变量名全部经 grep 核验存在于 e.light.token.css。
+   未在此出现的档位维持库默认，且与原型值逐项核验相同：
+     --o-color-info2/3/4        = rgba(0,0,0,.8/.6/.4) = 原型 text-2/3/4
+     --o-color-control4         = rgba(0,0,0,.1)       = 原型 --color-border
+     --o-color-control5 / fill2 = #fff                 = 原型 bg-page / bg-card
+     --o-shadow-1 / --o-shadow-2、各圆角档（4px）        = 原型同值
+     字号 tip2:12 / tip1:14 / text1:16、line_height-tip1:22、
+     font_family-code                                    = 原型同值
+   库默认 --o-color-danger1:#E60012 ≠ 原型 --color-accent-red:#CF222E，必须映射 */
+:root{
+  --o-color-primary1:#0969DA;        /* = 原型 --color-primary */
+  --o-color-primary2:#4E97E7;        /* = 原型 --color-primary-hover */
+  --o-color-primary3:#0969DA;        /* 原型无加深档，维持 = primary */
+  --o-color-primary1-light:#E2EDFD;  /* = 原型 --color-primary-bg */
+  --o-color-link1:#0969DA;           /* = 原型链接色 */
+  --o-color-link2:#4E97E7;           /* = 原型链接 hover */
+  --o-color-danger1:#CF222E;         /* = 原型 --color-accent-red（badge 红） */
+  --o-color-info1:rgba(0,0,0,.85);   /* = 原型 --color-text-1 */
+  --o-color-fill1:#F6F8FA;           /* = 原型 --color-bg-section */
+  --o-color-fill3:#F0F2F5;           /* = 原型 --color-bg-control */
+  --o-color-control1:#D0D7DF;        /* = 原型 --color-border-control */
+  --o-color-control2:#0969DA;        /* 控件 hover 边框 → 主色 = 原型 fdd-btn:hover 配方 */
+  --o-color-mask1:color-mix(in srgb,var(--o-color-info1) 53%,transparent); /* = 原型弹层遮罩 rgba(0,0,0,.45)：.85×53%≈.45 */
+}
+
+
+/* ---------- ② 🛠 原型 HiFloat :root 逐字移植（design/prototype_AISBench_20261104.html L9–28） ----------
+   原变量名 --color-* 、--fs-* 、--radius-* 等全部保留：第③层移植样式与 JS 图表构建器
+   （注释体内禁止出现 星号+正斜杠 的闭合序列：它会提前闭合注释，使后续 :root 块被错误恢复吞掉）
+   （柱图/散点/折线 innerHTML 字面量）按原型原样消费 */
+:root{
+  --font-body:HarmonyOS,Inter,-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",Arial,sans-serif;
+  --font-code:SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono",monospace;
+  --color-primary:#0969DA;--color-primary-hover:#4E97E7;--color-primary-bg:#E2EDFD;/* v0.36 P2-24：删零消费档位 --color-primary-active */
+  --color-accent-red:#CF222E;
+  --color-bg-page:#FFFFFF;/* v0.37 对齐主页面 L15：废止局部别名 --color-bg，改回 GCC 原名（body/顶栏引用同步改名） */
+  --color-bg-section:#F6F8FA;--color-bg-control:#F0F2F5;--color-bg-card:#FFFFFF;/* v0.37 对齐主页面 L15：卡片白改回 token（图表卡/表格/弹层/概览卡等 #fff 字面消费点同步改名） */
+  --color-border:rgba(0,0,0,.1);--color-border-control:#D0D7DF;
+  --color-text-1:rgba(0,0,0,.85);--color-text-2:rgba(0,0,0,.8);--color-text-3:rgba(0,0,0,.6);--color-text-4:rgba(0,0,0,.4);
+  --fs-tip2:12px;--lh-tip2:18px;--fs-tip1:14px;--lh-tip1:22px;--fs-text1:16px;--lh-text1:24px;/* v0.37 对齐主页面 L18：--lh-tip2 复引（消费点 .note） */
+  --fs-tip:13px;/* 局部扩展：控件/表格紧凑档（GCC 档位无此值） */
+  --fs-h3:22px;--lh-h3:30px;--fs-h1:32px;--lh-h1:44px;/* v0.37 对齐主页面 L19：复引同名行高档（消费点 .mhd h3、.sec-hd h2）；--fs-h4/--fs-h2 对齐后零消费裁剪 */
+  --fs-h5:18px;/* 局部扩展：md 弹窗正文 h1 档（主页面 .nrow h2 L319 有同值 18px 先例） */
+  --fs-display3:40px;/* v0.37 对齐主页面 L20：hero 标题档（消费点 .hero.mini h1；行高 50px 按主页面 L65 以字面值书写，--lh-display3 零消费不引） */
+  --fw-regular:400;--fw-bold:600;
+  --radius-control:4px;--radius-card:8px;--radius-pill:736px;
+  --shadow-1:0 3px 8px rgba(0,0,0,.08);--shadow-2:0 2px 24px rgba(0,0,0,.15);
+  --duration-s:.2s;--easing-standard:cubic-bezier(.2,0,0,1);
+  --header-height:72px;/* v0.34：顶栏高度 token，参照 GCC Benchmark 顶栏（72px，§6.3） */
+}
+
+/* ---------- ③ 🛠 原型样式逐字移植（L29–232；被 O 组件替换的规则以注释标记去向） ---------- */
+*{box-sizing:border-box;margin:0;padding:0}/* v0.37 对齐主页面 L29（声明顺序逐字） */
+html{scroll-behavior:smooth}/* v0.37 对齐主页面 L30：锚点跳转与 go() 后 scrollTo(0,0) 改平滑滚动 */
+body{font:var(--fs-tip1)/var(--lh-tip1) var(--font-body);color:var(--color-text-1);background:var(--color-bg-page)}/* v0.37 对齐主页面 L31 逐字：正文默认色 text-2→text-1（需浅灰的元素均已按主页面配方自带 color 声明：表格 th/td、fdd-btn、pg-btn、legend、note 等，继承审计无遗漏）；v0.35 正文 14px/22px 档不变 */
+a{color:var(--color-primary);text-decoration:none}
+a:hover{text-decoration:underline}/* v0.35 评审修复 P2-4：对齐重设计 L33——链接悬停补下划线（§6.1） */
+button{font-family:inherit}
+.wrap{max-width:1200px;margin:0 auto;padding:0 24px}
+code,.mono{font-family:var(--font-code)}/* v0.37 对齐主页面 L38：补 code 元素（mdRender 产出 <code>，.msec.md code 特异性更高仍接管其配色/底纹） */
+/* 原型 L37 .badge 移除 → OTag + 第④层 .od-badge 等价适配（红色容器徽标配方不变） */
+
+/* ==================== 顶栏（v0.34：样式参照 GCC Benchmark 顶栏——72px 固定不透明栏、logo 双行、导航左对齐紧随 logo（gap 40px）、全高导航项、选中态=主色加粗+2px 底部下划线；导航项：首页/精度榜单/性能榜单/测评工具） ==================== */
+.hd{position:fixed;top:0;left:0;right:0;height:var(--header-height);background:var(--color-bg-page);border-bottom:1px solid var(--color-border);z-index:101}/* v0.37 对齐主页面 L42：底色改走 token --color-bg-page */
+.hd-in{max-width:1200px;margin:0 auto;padding:0 24px;height:var(--header-height);display:flex;align-items:center;gap:40px}
+.logo{display:flex;align-items:center;gap:10px;font:700 18px/24px var(--font-body);color:var(--color-text-1);cursor:pointer;white-space:nowrap}
+.logo small{font:400 11px/14px var(--font-code);color:var(--color-text-4);display:block}
+.nav{display:flex;height:var(--header-height)}
+.nlink{position:relative;font-size:14px;color:var(--color-text-3);background:none;border:0;cursor:pointer;padding:0 14px;height:100%;display:flex;align-items:center;gap:5px;transition:color var(--duration-s)}/* v0.37 对齐主页面 L48 逐字（补 gap:5px、transition 去 easing 参数）；position:relative 保留——本页无 .ni 包裹层，#49 选中态下划线 .nlink.on::after 依赖此定位上下文 */
+.nlink:hover{color:var(--color-primary);text-decoration:none}/* v0.35 P2-4：全局 a:hover 下划线，顶栏导航项豁免（选中态下划线由 .nlink.on::after 绘制，#49 裁决） */
+.nlink.on{color:var(--color-primary);font-weight:var(--fw-bold)}
+.nlink.on::after{content:"";position:absolute;left:14px;right:14px;bottom:0;height:2px;background:var(--color-primary)}/* GCC 用 .ni.sel::after 画下划线；本页导航项无 .ni 包裹层，等价画在满高的 .nlink 上 */
+main{padding-top:var(--header-height)}/* v0.34：顶栏改 fixed 后主体补等高顶部内边距（参照 GCC main 规则） */
+.page{display:none}.page.show{display:block}/* v0.37 对齐主页面 L59：页面显隐改 class 机制（go() 同步切换 .show），替代原 page-acc/page-perf 段上的内联 display:none 僵尸样式 */
+
+/* ==================== 通用区块 ==================== */
+.sec{padding:56px 0;border-bottom:1px solid var(--color-border)}/* v0.37 对齐主页面 L80：板块分隔线由顶部改到底部；用户示例的间距修复随之落地——榜单 hero-mini 删除内联 padding-top:8px，板块与标题间恢复主页面 56px 竖向节奏 */
+.sec.alt{background:var(--color-bg-section)}
+.sec-hd{display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:32px;gap:24px}/* v0.37 对齐主页面 L82（取值相同，声明顺序逐字） */
+.sec-hd h2{font-size:var(--fs-h1);line-height:var(--lh-h1);font-weight:700}/* v0.37 对齐主页面 L83：板块标题 24px→32px/44px/700（字体大小以主页面为准） */
+.sec-hd .ssub{font-size:var(--fs-tip1);color:var(--color-text-3);margin-top:6px}/* v0.37 对齐主页面 L84：13px→14px；选择器收窄至 .sec-hd 作用域——原裸 .ssub 的唯一外部消费点 aisHit 已改 .note，其余消费点均在 .sec-hd 内 */
+.note{font-size:var(--fs-tip2);line-height:var(--lh-tip2);color:var(--color-text-4)}/* v0.37 对齐主页面 L36 逐字 */
+.none{font-size:var(--fs-tip2);color:var(--color-text-4);padding:12px 0}/* v0.37 对齐主页面 L152 逐字 */
+
+/* 原型 L61–67 .btn/.btn.outline/.btn.sm 移除 → OButton + 第④层 .od-btn-hero（主按钮 40px）/
+   .od-btn-view（表格行内 outline sm 28px「查看」）等价适配（配方数值不变） */
+
+/* ==================== Hero（首页：左文右动图） ==================== */
+.hero{border-bottom:1px solid var(--color-border);padding:64px 0 56px;background-image:linear-gradient(rgba(9,105,218,.05) 1px,transparent 1px),linear-gradient(90deg,rgba(9,105,218,.05) 1px,transparent 1px);background-size:24px 24px}/* v0.35 评审修复 P2-21：对齐重设计 L62——方格网格肌理+底部分隔线+padding 64/56（§5） */
+.hero-split{display:grid;grid-template-columns:1.05fr .95fr;gap:48px;align-items:center}
+.hero h1{font-size:clamp(24px,2.7vw,32px);line-height:1.2;color:var(--color-text-1);margin:16px 0 12px;font-weight:700;white-space:nowrap}/* v0.35：展示级标题字重 700（同重设计 L65）；clamp 防换行为 #42 裁决机制，保留 */
+.hero h1 em{font-style:normal;color:var(--color-primary)}
+.hero .sub{font-size:var(--fs-text1);line-height:var(--lh-text1);color:var(--color-text-3);max-width:660px}/* v0.37 对齐主页面 L67：副题宽度上限 560px→660px */
+.hero-cta{margin-top:28px;display:flex;gap:12px}/* v0.37 对齐主页面 L68 逐字（删 flex-wrap——本页 CTA 均为双按钮一行布局，不触发换行） */
+.hero.mini{padding:48px 0 40px}/* 对齐重设计 L63 */
+.hero.mini h1{font-size:var(--fs-display3);line-height:50px}/* v0.37 对齐主页面 L63-65：mini hero 标题 32px→40px/50px（字重 700 与 margin 16px 0 12px 由 .hero h1 继承 = 主页面 .hero h1 原值；#42 的 clamp+nowrap 仅作用于首页 split-hero，mini 为通栏无溢出风险） */
+/* v0.37：.hero.mini .sub 14px 覆盖删除——副题继承 .hero .sub 16px/24px = 主页面 mini-hero 行为 */
+
+/* ==================== 筛选器下拉 ==================== */
+.filters{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+/* 原型 L85–96 .fdd/.fdd-btn/.fdd-panel/.fdd-search/.fdd-clear 移除 → ODropdown + OInput + OButton，
+   第④层 .od-fdd-btn/.od-fdd-panel/.od-fdd-search/.od-fdd-clear/.od-model-list/.od-check-list 等价适配 */
+/* 原型 L97 select.sel 移除 → OSelect + 第④层 .od-repro-sel（184px 定宽）/.od-ctx-sel 等价适配 */
+
+/* 原型 L100–106 .ctabs/.seg 移除 → OTab（text/button+pill 形态），
+   第④层 .od-ctabs/.od-seg 等价适配（下划线页签无 hover 档、胶囊分段选中白底+阴影配方不变） */
+
+/* ==================== 图表与图例 ==================== */
+.chart-box{background:var(--color-bg-card);border:1px solid var(--color-border);border-radius:var(--radius-card);padding:24px}/* v0.37 对齐主页面 L241 逐字 */
+.chart-hd{display:flex;justify-content:space-between;align-items:center;gap:16px;margin-bottom:16px;flex-wrap:wrap}/* v0.37 对齐主页面 L242 逐字 */
+.chart-hd .t{font-size:var(--fs-text1);font-weight:var(--fw-bold)}/* v0.37 对齐主页面 L243：卡标题 13px/浅灰→16px/600/默认 text-1 */
+.legend{display:flex;gap:16px;flex-wrap:wrap;font-size:var(--fs-tip2);color:var(--color-text-3);margin-top:16px}/* v0.37 对齐主页面 L244 逐字 */
+.legend span{display:flex;align-items:center;gap:6px}/* v0.37 对齐主页面 L245：图例项文字与色点间距由 margin-right 配方改 span 内 gap（JS legend 已为 <span><span class="dot"></span>文字</span> 结构，无需改动） */
+.dot{width:8px;height:8px;border-radius:50%;display:inline-block;flex:none}/* v0.37 对齐主页面 L246：色点升为全局类（取代原 .legend .dot） */
+#accScatter .tick{font-family:var(--font-code)}/* v0.36 复核修复 P2-26：散点图刻度字族同柱状图 .accgl span（mono，PRD ⑫「刻度样式同柱状图」）；SVG 展示属性无法引用 var()，故以类声明 */
+
+/* ==================== 表格 ==================== */
+.tblwrap{border:1px solid var(--color-border);border-radius:var(--radius-card);overflow:auto;background:var(--color-bg-card)}/* v0.37 对齐主页面 L265 */
+.tbl{width:100%;border-collapse:collapse;font-size:var(--fs-tip)}/* v0.37：主页面 L266 以 13px 字面书写，--fs-tip 同值归并 */
+.tbl th{background:var(--color-bg-section);text-align:left;padding:10px 12px;font-weight:var(--fw-bold);color:var(--color-text-2);border-bottom:1px solid var(--color-border);white-space:nowrap}/* v0.37 对齐主页面 L267 逐字 */
+.tbl td{padding:9px 12px;border-bottom:1px solid var(--color-border);color:var(--color-text-2)}/* v0.37 对齐主页面 L268 逐字 */
+/* v0.37：.tbl tr:last-child td{border-bottom:0} 删除——主页面保留末行下边框（L268 配方），与表格底缘对齐 */
+.tbl tbody tr:hover td{background:var(--color-bg-section)}/* v0.37 对齐主页面 L269（hover 底色落在 td，避免被单元格自带背景盖住） */
+.tbl.kv td:first-child{width:230px;color:var(--color-text-4);font-size:var(--fs-tip2)}/* v0.37 对齐主页面 L270：键列 280px 底色→230px 无底色 text-4/12px（主页面配方） */
+.rank{display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:50%;background:var(--color-bg-control);color:var(--color-text-2);font:var(--fw-bold) var(--fs-tip)/1 var(--font-code)}
+.rank.top{background:var(--color-primary);color:#fff}
+.mname{font-weight:var(--fw-bold);color:var(--color-text-1)}/* v0.35：模型名=行级标题，字重两档纪律 500→600 */
+.msub{font-size:var(--fs-tip2);color:var(--color-text-4)}
+.score-big{color:var(--color-primary);font:var(--fw-bold) var(--fs-tip) var(--font-code)}/* v0.37 对齐主页面 L271 .score-link 字体配方（600/13px/mono/主色，--fs-tip 同值归并；原 18px 大数字档取消）；本页分数列为纯展示元素（详情入口在行内「测试方法」列），故不引入 cursor/下划线 hover 态 */
+/* 原型 L130–133 .tag/.tag.blue/.tag.orange/.tag.green 移除 → OTag + 第④层 .od-tag-blue 等价适配
+   （本页唯一消费点为概览卡「精度」蓝 tag；orange/green 零消费） */
+/* 原型 L134–138 .pager/.pg-btn 移除 → OPagination + 第④层 .od-pager 等价适配（32px 方钮配方不变） */
+.pg-note{font-size:var(--fs-tip2);color:var(--color-text-4);margin-left:8px}/* v0.37 对齐主页面 L278 逐字 */
+
+/* ==================== 图表模式（柱状；v0.27：模型名称竖排放入柱子内部） ==================== */
+.accchart{position:relative;height:420px;background:var(--color-bg-card);border:1px solid var(--color-border);border-radius:var(--radius-card);padding:28px 36px 64px 56px;overflow:hidden}/* v0.32：底部留白 44→64px 为横轴标注腾出上下间隙；整高 400→420px 保持绘图区不压缩；v0.37：卡片白改走 token --color-bg-card（#47/#48 裁决的绘图几何不动） */
+.accgrid{position:absolute;left:56px;right:36px;top:28px;bottom:64px}
+.accgl{position:absolute;left:0;right:0;border-top:1px dashed rgba(0,0,0,.08)}
+.accgl span{position:absolute;right:calc(100% + 8px);top:-8px;font:11px var(--font-code);color:var(--color-text-4)}/* v0.30：刻度数字右对齐收于网格左缘 8px 处，与散点图纵轴刻度位置关系一致，避让「分数」轴标题 */
+.accbars{position:absolute;left:0;right:0;top:0;bottom:0;display:flex;align-items:flex-end;justify-content:space-around;gap:12px}
+.accbar{position:relative;flex:1;max-width:96px;border-radius:6px 6px 0 0;transition:opacity var(--duration-s) var(--easing-standard)}
+.accbar:hover{opacity:.85}
+.accbar .val{position:absolute;left:50%;transform:translateX(-50%);top:6px;font:var(--fw-bold) 13px var(--font-code);color:#fff;text-shadow:0 1px 2px rgba(0,0,0,.18)}
+/* v0.27：模型名称竖排放入柱子内部（取消柱底斜排标签） */
+.accbar .lbl{position:absolute;bottom:8px;left:50%;transform:translateX(-50%);writing-mode:vertical-rl;white-space:nowrap;font-size:11px;line-height:1;color:#fff;max-height:calc(100% - 28px);overflow:hidden}
+.accbar .ven{position:absolute;top:calc(100% + 10px);left:50%;transform:translateX(-50%);white-space:nowrap;text-align:center;font-size:10px;color:var(--color-text-4)}/* v0.32：横向坐标轴内容不换行——厂商文字单行居中于柱下方，长名称可对称超出柱宽 */
+.ytitle{position:absolute;left:14px;top:50%;transform:rotate(-90deg) translateX(50%);transform-origin:left top;font-size:12px;color:var(--color-text-3)}/* v0.33：轴标题字号修正为与散点图纵轴标题一致（12px，v0.30 曾误按 11px 执行） */
+.xtitle{position:absolute;left:56px;right:36px;bottom:12px;text-align:center;font-size:12px;color:var(--color-text-3)}/* v0.32：位置参照散点图横轴标题——与卡片底部留 12px 间隙、与上方厂商文字留 ≥17px 间隙；v0.33：字号同纵轴标题及散点图轴标题统一为 12px */
+
+/* ==================== v0.29 ⑩ 复现方式筛选器 + ⑫ 发布时间-分数散点图 ==================== */
+.repro-row{display:flex;align-items:center;gap:12px;margin-bottom:16px}
+.repro-lbl{font-size:var(--fs-tip1);color:var(--color-text-3)}/* G10 后僵尸规则（span 已由 OFormItem label 取代），逐字保留备查 */
+/* G10：OFormItem label 承接 .repro-lbl 视觉（tip1/text-3/常规字重）；行间距 gap12 → label margin-right 12px（原 .repro-row gap 对 form-item 单子项失效）；库 CSS 内联后注入，双类名提权；结构 probe37 dump 实证：.o-form-item-label(div)+.o-form-item-main>.o-form-item-main-wrap，已收敛
+   v0.45（用户报缺陷：「复现方式：」label 与 select 间距过大）：库 .o-form-layout-h 对 item/label 另有 ≥0-3-0 定宽列规则（grid track / flex-basis / min-width），0-2-0 的 width:auto 收不拢——提权 0-4-0（双类+.o-form）并显式 display:flex + grid-template-columns:auto + label flex:0 0 auto/min-width:0，间距收敛为 margin-right:12px */
+.od-repro-form.od-repro-form.o-form .o-form-item{display:flex;align-items:center;margin:0;grid-template-columns:auto 1fr}
+.od-repro-form.od-repro-form.o-form .o-form-item-label{flex:0 0 auto;width:auto;min-width:0;font-size:var(--fs-tip1);color:var(--color-text-3);font-weight:var(--fw-regular);margin:0 12px 0 0;padding:0;line-height:inherit;text-align:left}
+.od-repro-form.od-repro-form.o-form .o-form-item-main,.od-repro-form.od-repro-form.o-form .o-form-item-main-wrap{margin:0;padding:0;flex:0 0 auto}
+/* 原型 L159 .repro-row .sel{width:184px} 移除 → 第④层 .od-repro-sel 承接定宽 */
+/* v0.31：.scat-hd/.scat-t/.scat-sub 已删除（散点图卡片标题与说明行按用户验收调整移除） */
+
+/* ==================== v0.26：精度测评榜单概览卡片（首页） ==================== */
+.ov-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+.ov-card{background:var(--color-bg-card);border:1px solid var(--color-border);border-radius:var(--radius-card);padding:18px 20px;cursor:pointer;transition:border-color var(--duration-s) var(--easing-standard)}/* v0.37：卡片白改走 token --color-bg-card（本页特有组件，主页面无对应类，几何/缓动不动） */
+.ov-card:hover{border-color:var(--color-primary)}/* v0.35 评审修复 P2-3：卡片不加阴影（§3.3/§9.3），hover 仅描边变主色 */
+.ov-hd{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:8px}
+.ov-hd h3{font-size:var(--fs-tip1);color:var(--color-text-1)}
+.ov-info{font-size:var(--fs-tip);color:var(--color-text-3);line-height:22px;margin-bottom:12px;min-height:44px}
+.ov-rank{border-top:1px solid var(--color-border);padding-top:10px}
+.ov-rank-item{display:flex;align-items:center;gap:10px;padding:4px 0;font-size:var(--fs-tip)}
+.ov-rank-item .no{width:20px;height:20px;border-radius:var(--radius-control);background:var(--color-bg-control);color:var(--color-text-3);display:inline-flex;align-items:center;justify-content:center;font:var(--fw-bold) 12px var(--font-code);flex:none}
+.ov-rank-item.top .no{background:var(--color-primary);color:#fff}
+.ov-rank-item .nm{flex:1;color:var(--color-text-2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ov-rank-item .sc{font:var(--fw-bold) var(--fs-tip)/1 var(--font-code);color:var(--color-primary)}
+/* v0.29 ⑪：测试方法弹窗——正文改为 Markdown 富文本（原「参数配置」表格与「制作方法」链接样式已删除） */
+.msec.md{line-height:1.75;padding-right:4px}/* v0.36 复核修复 P2-27：删内层 56vh 限高滚动——v0.35 为 .mbox 加 86vh 内滚后双层滚动致 .mhd sticky 吸顶失效，滚动统一由外层承担 */
+.msec.md h1{font-size:var(--fs-h5);color:var(--color-text-1);margin-bottom:10px}
+.msec.md h2{font-size:var(--fs-tip1);color:var(--color-text-1);margin:16px 0 6px;padding-left:8px;border-left:3px solid var(--color-primary)}
+.msec.md h3{font-size:var(--fs-tip1);color:var(--color-text-1);margin:12px 0 4px}
+.msec.md p{margin:6px 0}
+.msec.md ul,.msec.md ol{margin:6px 0 6px 22px}
+.msec.md li{margin:3px 0}
+.msec.md code{font-family:var(--font-code);font-size:12.5px;background:var(--color-bg-control);padding:1px 5px;border-radius:3px;color:var(--color-text-1)}
+.msec.md pre{background:#0F1720;color:#D6E2F0;padding:12px 14px;border-radius:var(--radius-card);overflow-x:auto;margin:8px 0;line-height:1.6}
+.msec.md pre code{background:none;padding:0;color:inherit;font-size:12.5px}
+.msec.md blockquote{border-left:3px solid var(--color-border-control);background:var(--color-bg-section);padding:6px 12px;color:var(--color-text-3);margin:8px 0}
+.msec.md table{width:100%;border-collapse:collapse;margin:8px 0;font-size:var(--fs-tip)}
+.msec.md th,.msec.md td{border:1px solid var(--color-border);padding:6px 10px;text-align:left}
+.msec.md th{background:var(--color-bg-section);color:var(--color-text-1);font-weight:var(--fw-bold)}
+.msec.md hr{border:0;border-top:1px solid var(--color-border);margin:14px 0}
+
+/* ==================== 弹层 ==================== */
+/* 原型 L193–195 .modal/.modal.open/.mbox 移除 → ODialog + 第④层 .od-dlg 等价适配
+   （遮罩 rgba(0,0,0,.45) 由①层 --o-color-mask1 映射承接；980/820/640px 限宽由
+   main-class .od-dlg/.od-dlg-820/.od-dlg-640 承接；.mhd/.mclose/.mbody/.msec 保留如下，
+   置于 ODialog #header/默认插槽内，视觉配方不变） */
+.mhd{display:flex;justify-content:space-between;align-items:flex-start;padding:24px 32px;border-bottom:1px solid var(--color-border);position:sticky;top:0;background:var(--color-bg-card);border-radius:var(--radius-card) var(--radius-card) 0 0;z-index:2;text-align:left}/* text-align:left 复位 .o-dlg-header 默认居中（原版左对齐） *//* v0.37 对齐主页面 L284 逐字：头部在遮罩滚动容器内吸顶（P2-3 吸顶意图承接） */
+.mhd h3{font-size:var(--fs-h3);line-height:var(--lh-h3);font-weight:700}/* v0.37 对齐主页面 L285：22px/30px/700（行高 token --lh-h3 复引） */
+.mhd .sub{font-size:var(--fs-tip);color:var(--color-text-3);margin-top:6px}/* v0.37 对齐主页面 L287（13px→--fs-tip 同值归并；间距 4px→6px） */
+.mclose{width:32px;height:32px;border:1px solid var(--color-border-control);border-radius:var(--radius-control);background:none;cursor:pointer;font-size:15px;color:var(--color-text-3);flex:none}/* v0.37 对齐主页面 L288 逐字：关闭钮改 32px 方框描边形态（原 --fs-h5 18px 消费点随之移除） */
+.mclose:hover{color:var(--color-accent-red);border-color:var(--color-accent-red)}/* v0.37 对齐主页面 L289 逐字（--color-accent-red 第 2 消费点，见 :root 注释） */
+.mbody{padding:24px 32px 32px}/* v0.37 对齐主页面 L290 逐字 */
+.msec{margin-bottom:28px}/* v0.37 对齐主页面 L291 逐字：分节改纯间距，原分节分隔线与 :last-child 复位规则随之废止 */
+.msec>h4{font-size:var(--fs-text1);font-weight:var(--fw-bold);margin-bottom:12px;padding-left:10px;border-left:2px solid var(--color-primary)}/* v0.37 对齐主页面 L292 逐字：小节标题 14px→16px/600+主色竖条；直接子选择器——md 正文 h4 仍由 .msec.md h4（特异性更高）接管 */
+
+/* ==================== hover 信息卡 ==================== */
+.hc-pop.hc-pop{z-index:300;pointer-events:none}/* G4：.hc-tip#tooltip 静态容器 → OPopup 受控；z-index:300 与 pointer-events:none 逐字移至 wrap（防弹层遮挡 mouseover 致闪烁）；库 CSS 内联后注入 → 双类名提权 */
+.hc-pop .hc-pop-body.hc-pop-body{width:288px;max-width:none;min-width:0;background:var(--color-bg-card);border:1px solid var(--color-border);border-radius:var(--radius-card);box-shadow:var(--shadow-2);padding:12px 16px;font-size:var(--fs-tip2);line-height:20px;color:var(--color-text-2)}/* v0.37 对齐主页面 L301 #tooltip 视觉配方逐字（288px 定宽 border-box/12px 档/20px 行高）→ G4 承接至弹层内容体；原版 position:fixed+clientX 定位 → targetRect 视口坐标契约天然等价 */
+.hc-pop-body .hc{font-size:var(--fs-tip1);font-weight:700;color:var(--color-text-1)}/* v0.37 对齐主页面 L302：标题 700 */
+.hc-pop-body .hc-sub{color:var(--color-text-3);margin-bottom:2px}/* v0.37 对齐主页面 L303 */
+.hc-pop-body .sep{height:1px;background:var(--color-border);margin:8px 0}/* v0.37 对齐主页面 L304 */
+/* v0.37：.hc-tip .dot 删除——零消费（showTip 仅 2 处调用均不产出色点；如需由全局 .dot 承接几何） */
+
+/* ==================== 页脚 ==================== */
+.ft{background:var(--color-bg-section);border-top:1px solid var(--color-border);padding:48px 0 32px}/* v0.37 对齐主页面 L343 逐字（原 margin-top:64px 与 .ft .wrap 内衬配方废止，横向 24px 由全局 .wrap 承担=主页面同模型） */
+/* v0.37：.ft .wrap{padding:40px 24px} 删除（主页面配方 L343 无此内衬层） */
+.ft-grid{display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:48px}/* v0.37 对齐主页面 L344：页脚改四列网格（本页恰为品牌/榜单/工具/返回 4 组） */
+.ft h5{font-size:var(--fs-tip1);font-weight:var(--fw-bold);margin-bottom:12px}/* v0.37 对齐主页面 L345：组标题 13px/浅灰→14px/600/text-1（继承） */
+.ft a{display:block;font-size:var(--fs-tip);color:var(--color-text-3);padding:4px 0;text-decoration:none}/* v0.37 对齐主页面 L346 逐字（13px→--fs-tip 同值归并） */
+.ft .slogan{font:12px var(--font-code);color:var(--color-text-4);margin-top:12px}/* v0.37 对齐主页面 L348 逐字 */
+.ft a:hover{color:var(--color-primary)}/* 主页面 L347 同款 */
+.ft-bot{border-top:1px solid var(--color-border);margin-top:32px;padding-top:16px;font-size:var(--fs-tip2);color:var(--color-text-4);display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap}/* v0.37 对齐主页面 L349 逐字 */
+
+/* ==================== AI 风格矢量动图 ==================== */
+.ai-anim{width:100%;height:auto}
+@keyframes orbit{to{transform:rotate(360deg)}}
+@keyframes orbit-r{to{transform:rotate(-360deg)}}
+@keyframes pulse{0%,100%{opacity:.35;r:5}50%{opacity:1;r:7}}
+.orbit1{animation:orbit 24s linear infinite;transform-origin:260px 210px}
+.orbit2{animation:orbit-r 36s linear infinite;transform-origin:260px 210px}
+.node{animation:pulse 3s ease-in-out infinite}
+.node.d1{animation-delay:.6s}.node.d2{animation-delay:1.2s}.node.d3{animation-delay:1.8s}.node.d4{animation-delay:2.4s}
+.flow{stroke-dasharray:6 8;animation:flowmove 1.6s linear infinite}
+@keyframes flowmove{to{stroke-dashoffset:-14}}
+
+
+/* ---------- ④ 🔶 O 组件 scoped 适配层（.od-* 前缀） ----------
+   约定：双类名（.od-x.od-x = 0,2,0）按源顺序覆盖库默认，无 !important；
+   颜色一律经 --o-* 语义 token；组件内部变量名（--btn-* 、--tag-* 、--dlg-* 等）
+   已在 opendesign.min.css 中 grep 核验存在；未探明的内部类用多猜选择器
+   （.active/.is-active、[class*="prev"] 等），不命中即空操作、无副作用。
+   8px/736px 圆角、13px 紧凑字号、28px/30px 控件高等为原型字面值，
+   e.light token 无对应档位（圆角 token 全为 4px），按字面记录。 */
+
+/* .badge（原型 L37）→ OTag variant="outline"：红色容器徽标，
+   rgba(207,34,46,.1/.25) = danger1(#CF222E) 的 10%/25% color-mix 等值 */
+.od-badge.od-badge{
+  --tag-color:var(--o-color-danger1);
+  --tag-bg-color:color-mix(in srgb,var(--o-color-danger1) 10%,transparent);
+  --tag-bd-color:color-mix(in srgb,var(--o-color-danger1) 25%,transparent);
+  --tag-bd:1px solid var(--tag-bd-color);
+  --tag-height:24px;
+  --tag-padding:0 12px;
+  --tag-radius:4px;
+  --tag-text-size:12px;
+  --tag-text-height:24px;
+  font-family:var(--font-code);
+  font-weight:600;
+  letter-spacing:.5px;
+}
+
+/* .tag.blue（原型 L130/131，概览卡「精度」）→ OTag variant="outline"：
+   rgba(9,105,218,.1/.25) = primary1 的 10%/25% color-mix 等值 */
+.od-tag-blue.od-tag-blue{
+  --tag-color:var(--o-color-primary1);
+  --tag-bg-color:color-mix(in srgb,var(--o-color-primary1) 10%,transparent);
+  --tag-bd-color:color-mix(in srgb,var(--o-color-primary1) 25%,transparent);
+  --tag-bd:1px solid var(--tag-bd-color);
+  --tag-height:20px;
+  --tag-padding:0 8px;
+  --tag-radius:4px;
+  --tag-text-size:12px;
+  --tag-text-height:20px;
+}
+
+/* .btn 主按钮（原型 L62-63，hero CTA / pdf 下载）→ OButton */
+.od-btn-hero.od-btn-hero{
+  --btn-height:40px;
+  --btn-padding:8px 24px;
+  --btn-radius:8px;
+  --btn-bd-color:transparent;
+  --btn-bd-color-hover:transparent;
+  --btn-bg-color:var(--o-color-primary1);
+  --btn-bg-color-hover:var(--o-color-primary2);
+  --btn-color:var(--o-color-control5);
+  --btn-gap:6px;
+  font-size:var(--o-font_size-text1);
+  /* o-btn-outline 变体以直接声明钉死透明底（--btn-bg-color 变量被其覆盖），
+     故主按钮配方在此以直接声明复核（0,2,0 特异性按源顺序胜出变体 0,1,0） */
+  background-color:var(--color-primary);
+  border-color:transparent;
+  color:var(--o-color-control5);
+}
+.od-btn-hero.od-btn-hero:hover{
+  background-color:var(--color-primary-hover);
+  border-color:transparent;
+  color:var(--o-color-control5);
+}
+
+/* .btn.outline.sm（原型 L65-67，表格行内「查看」）→ OButton */
+.od-btn-view.od-btn-view{
+  --btn-height:28px;
+  --btn-padding:2px 12px;
+  --btn-radius:4px;
+  --btn-bd-color:var(--o-color-primary1);
+  --btn-bd-color-hover:var(--o-color-primary1);
+  --btn-bg-color:transparent;
+  --btn-bg-color-hover:var(--o-color-primary1-light);
+  --btn-color:var(--o-color-primary1);
+  --btn-color-hover:var(--o-color-primary1);
+  font-size:var(--o-font_size-tip2);
+  white-space:nowrap;
+}
+
+/* v0.42 用户验收：性能榜单对比分析 4 个筛选器改用规定组件 OSelect 默认形态
+   （模型=单选可搜索 / 芯片类型、精度=多选可清除 / 上下文=单选）；
+   原 .fdd-btn 自定义按钮 + 双层嵌套下拉面板（搜索框、radio/checkbox 组、清除按钮）连同其摹写 CSS 整体移除 */
+.od-f-sel.od-f-sel{--select-bd-color:var(--o-color-control1);width:160px;height:32px}
+.od-f-sel.od-f-model{width:180px}
+.od-f-sel.od-ctx-sel{width:110px}
+/* v0.42 补：多选标签换行会撑高筛选行（原版行高 32px 单行）——根部裁切 + 标签单行省略（选项层 teleport 到 body，不受根部 overflow 影响）
+   v0.43（用户报缺陷⑧⑨）：库样式后加载，等特异性 overflow:hidden 被库顶掉 → 横向滚动条、折叠标签被裁。
+   v0.44 复验三轮定案：库真实类名 .o-select-tag / .o-select-tags-wrap（.o-tag、[class*=fold] 系臆测未命中）；
+   .o-select-tags-wrap 默认 flex-wrap:wrap → 长标签折行并把折叠「+N…」挤出可视区；.o-select-tag-remove 是 display:flex 块级，
+   故 .o-select-tag 必须保持库默认 inline-flex（改 block 会把 ✕ 挤到第二行）。
+   定案：标签区单行 nowrap 裁切 + 单标签限宽单行（white-space 可继承到匿名文本项）+ 折叠标签（末个 .o-select-tag，文本 +N…＝省略号代替未显示信息）
+   禁收缩始终可见 → hover 由库原生 .o-select-tag-popover 弹出全部已选（show-fold-tags=hover，与精度筛选器同效果） */
+.od-f-sel.od-f-sel.o-select{overflow:hidden!important}
+.od-f-sel.od-f-sel .o-select-tags-wrap{flex-wrap:nowrap!important;overflow:hidden!important}
+.od-f-sel.od-f-sel .o-select-tag{max-width:104px;flex:0 1 auto;overflow:hidden!important;white-space:nowrap}
+.od-f-sel.od-f-sel .o-select-tag>span{display:block;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.od-f-sel.od-f-sel .o-select-tag:last-child{flex:0 0 auto;max-width:none}
+/* v0.40：库 popup 翻转逻辑在本环境不可靠——ODropdown 面板钉死触发器正下方；v0.42 扩到 OSelect 选项层 */
+.o-dropdown{position:relative}
+.o-select{position:relative}
+.o-dropdown>.o-popup,.o-select>.o-popup{transform:none!important;top:calc(100% + 4px)!important;left:0!important;bottom:auto!important;right:auto!important}
+
+/* select.sel（原型 L97 + L159）→ OSelect（medium 32px 高与原型同值；仅补描边色与定宽） */
+.od-repro-sel.od-repro-sel,.od-ctx-sel.od-ctx-sel{--select-bd-color:var(--o-color-control1)}
+.od-repro-sel.od-repro-sel{width:184px}/* 原型 .repro-row .sel 定宽 */
+.od-ctx-sel.od-ctx-sel{width:88px}/* 🔶 近似：原型 aisCtxSel 为原生 select 随内容自适应，「1k/1k」+箭头约 88px */
+
+/* .seg（原型 L104-106）→ OTab variant="button" round="pill"（panes 仅承载页签，正文由外层 v-show 承接） */
+.od-seg.od-seg{
+  display:inline-flex;
+  background:var(--o-color-fill3);
+  border-radius:736px;
+  padding:3px;
+  --tab-nav-justify:flex-start;
+  --tab-nav-gap:0;
+  --tab-nav-list-padding:0;
+  --tab-nav-padding:0 16px;
+  --tab-nav-text-size:13px;
+  --tab-nav-text-height:30px;
+  --tab-nav-color:var(--o-color-info3);
+  --tab-nav-color-hover:var(--o-color-info3);
+  --tab-nav-color-active:var(--o-color-primary1);
+  --tab-nav-bg-color:transparent;
+  --tab-nav-bg-color-active:var(--o-color-fill2);
+  --tab-nav-bd-color:transparent;
+  --tab-nav-bd-color-hover:transparent;
+  --tab-nav-bd-color-active:transparent;
+  --tab-nav-radius:736px;
+  --tab-btn-radius:736px;/* button 变体页签圆角实际消费 --tab-btn-radius（库 .o-tab-button .o-tab-nav 规则），--tab-nav-radius 不生效 */
+  --tab-icon-color:var(--o-color-info3);/* 库 .o-tab-nav 常态文字色消费 --tab-icon-color（默认 info2），原型 .seg button 文字为 text-3 */
+  --tab-nav-divider:none;
+  --tab-solid-nav-gap:0;
+  --tab-solid-nav-padding:0;
+}
+.od-seg .o-tab-nav{height:30px;box-sizing:border-box;border:0}/* 原型 .seg button border:0 */
+.od-seg .o-tab-nav-active,.od-seg .o-tab-nav-active:hover{border:0;box-shadow:var(--o-shadow-1)}/* 库激活类名为 .o-tab-nav-active（font-weight:600 内建）；旧 .active/.is-active 选择器不命中 */
+.od-seg .o-tab-body{display:none}
+
+/* .ctabs（原型 L100-103）→ OTab 下划线页签（主页面配方无 hover 档：color-hover 钉回常态） */
+.od-ctabs.od-ctabs{
+  flex-wrap:wrap;
+  --tab-nav-justify:flex-start;
+  --tab-nav-gap:28px;
+  --tab-nav-text-size:var(--o-font_size-tip1);
+  --tab-nav-text-height:var(--o-line_height-tip1);
+  --tab-nav-padding:10px 2px;
+  --tab-nav-divider:1px solid var(--o-color-control4);
+  --tab-nav-color:var(--o-color-info3);
+  --tab-nav-color-hover:var(--o-color-info3);
+  --tab-nav-color-active:var(--o-color-primary1);
+  --tab-icon-color:var(--o-color-info3);/* 库 .o-tab-nav 常态文字色消费 --tab-icon-color（默认 info2），原型 .ctabs button 文字为 text-3 */
+  --tab-nav-bd-color:transparent;
+  --tab-nav-bd-color-hover:transparent;
+  --tab-nav-bd-color-active:var(--o-color-primary1);
+  --tab-nav-bg-color:transparent;
+  --tab-nav-bg-color-active:transparent;
+  margin-bottom:24px;
+}
+.od-ctabs .o-tab-nav{margin-bottom:-1px}
+.od-ctabs .o-tab-head{border-bottom:1px solid var(--o-color-control4)}/* 复刻原型 .ctabs 通栏分隔线（库 show-line::after 需 prop 才渲染） */
+.od-ctabs .o-tab-nav-anchor{display:none}/* 库下划线为 16px 短锚条，原型为贯穿按钮的 2px 下划线，改由激活态 border-bottom 承接 */
+.od-ctabs .o-tab-nav-active{border-bottom:2px solid var(--o-color-primary1)}/* 库激活类名 .o-tab-nav-active（font-weight:600 内建）；旧 .active/.is-active 选择器不命中 */
+.od-ctabs .o-tab-body{display:none}
+
+/* .tblwrap/.tbl（原型 L118-123 配方）→ ODataTable（--table-radius/--table-border 已核验；
+   th/td 具体配方以元素选择器直写，双类特异性 0,2,1 稳压库内 0,1,1） */
+.od-tbl.od-tbl{
+  --table-radius:8px;
+  --table-border:1px solid var(--o-color-control4);
+  border-radius:8px;
+  overflow:auto;
+  background:var(--o-color-control5);
+  font-size:13px;
+}
+.od-tbl.od-tbl th{
+  background:var(--o-color-fill1);
+  text-align:left;
+  padding:10px 12px;
+  font-weight:600;
+  color:var(--o-color-info2);
+  border-bottom:1px solid var(--o-color-control4);
+  white-space:nowrap;
+  font-size:13px;
+}
+.od-tbl.od-tbl td{
+  padding:9px 12px;
+  border-bottom:1px solid var(--o-color-control4);
+  color:var(--o-color-info2);
+  font-size:13px;
+}
+.od-tbl.od-tbl tbody tr:hover td{background:var(--o-color-fill1)}
+/* 表内操作链接（原型「测试方法」列为裸 <a>：继承 13px + 主色、hover 仅下划线不变色）→ OLink；
+   此处压掉 lib medium 档 14px 字号与 link2 hover 变色（双类+子类特异性 0,3,0 > 库内 0,1,0），
+   hover 下划线沿用组件 hoverUnderline 默认 true，等价原型 a:hover{text-decoration:underline} */
+.od-tbl.od-tbl .o-link{
+  /* v0.42 用户验收「查看按钮样式不对」：inherit 塞进 font 简写会整条无效（回落库默认 14px/link 色）；
+     改显式 13px/22px，且颜色对齐原型全局 a{color:var(--color-primary)}（主色而非 link 档 token） */
+  --link-text-size:13px;
+  --link-text-height:22px;
+  --link-color:var(--o-color-primary1);
+  --link-color-hover:var(--o-color-primary1);
+  --link-color-active:var(--o-color-primary1);
+}
+
+/* .pager/.pg-btn（原型 L134-138）→ OPagination（移植 A 层 gcc-pager 用户已验证配方：
+   库页码/箭头项是 .o-pagination-item / .o-pagination-prev / .o-pagination-next 的 div（非 <button>，旧 button 选择器全部不命中）；
+   --pagination-arrow-size 是箭头图标字号档（旧值 32px 导致 ::after 文案巨大），移除；
+   prev/next 以文本呈现：隐藏库图标 + ::after 补「上一页/下一页」文案；
+   .o-pagination-total 保留显示以承载 .pg-note（间距复刻原型 gap6+margin8） */
+.od-pager.od-pager{
+  --pagination-item-size:var(--o-control_size-m);
+  --pagination-radius:4px;
+  margin-top:16px;
+  justify-content:flex-start;
+  flex-wrap:wrap;
+  gap:6px;
+}
+.od-pager .o-pagination-item{
+  min-width:32px;height:32px;padding:0 10px;box-sizing:border-box;
+  border:1px solid var(--o-color-control1);border-radius:4px;
+  background-color:var(--o-color-control5);font-size:13px;color:var(--o-color-info2);
+}
+.od-pager .o-pagination-item:hover{border-color:var(--o-color-primary1);color:var(--o-color-primary1)}
+.od-pager .o-pagination-item.active{border-color:var(--o-color-primary1);color:var(--o-color-primary1);font-weight:600}
+.od-pager .o-pagination-prev,.od-pager .o-pagination-next{
+  width:auto;min-width:32px;height:32px;padding:0 10px;box-sizing:border-box;
+  border:1px solid var(--o-color-control1);border-radius:4px;
+  background-color:var(--o-color-control5);font-size:13px;color:var(--o-color-info2);
+}
+.od-pager .o-pagination-prev:hover,.od-pager .o-pagination-next:hover{border-color:var(--o-color-primary1);color:var(--o-color-primary1)}
+.od-pager .o-pagination-prev>*,.od-pager .o-pagination-next>*{display:none}
+.od-pager .o-pagination-prev::after{content:"上一页"}
+.od-pager .o-pagination-next::after{content:"下一页"}
+.od-pager .o-pagination-prev[disabled],.od-pager .o-pagination-next[disabled],
+.od-pager .o-pagination-item-disabled,.od-pager .o-pagination-disabled{opacity:.4;cursor:not-allowed}
+.od-pager .o-pagination-jumper,.od-pager .o-pagination-pagesize,.od-pager .o-pagination-sizes{display:none}
+.od-pager .o-pagination-total{margin-left:14px;order:10}/* 原型构建顺序 prev→页码→next→.pg-note（note 在按钮组之后）；库默认 total 在前，order 推后；实测组件内部层级 gap:6 不作用于 total——14px 间距（原 .pager gap6 + note margin8）并入 margin 复刻 */
+.od-pager .o-pagination-total .pg-note{margin-left:0}/* 间距由 total 承担，避免与原型 .pg-note 自带 margin-left:8px 叠加 */
+
+/* .modal/.mbox（原型 L193-195）→ ODialog：
+   遮罩 rgba(0,0,0,.45) 由①层 --o-color-mask1 映射承接（.85×53%≈.45），
+   .od-dlg-root（class 落到弹层根）再按 --layer-mask 双保险；
+   滚动模型移植 A 层 gcc-modal（用户已验证）：原型 .modal 本身即滚动容器（L194 overflow:auto;padding:48px 24px）
+   + .mbox{max-width;margin:0 auto}；库 .o-layer 是居中 flex 非滚动层，配合 --dlg-max-height:none 会让弹层
+   高出视口被裁掉且无滚动条——改为层滚动、弹层本体限宽 auto 外边距；
+   980/820/640px 限宽走 main-class；库 header 保留（#header 插槽承载 .mhd，内衬清零），
+   .mbody 由③层逐字移植自带 32px 配方 */
+.od-dlg-root{--layer-mask:color-mix(in srgb,var(--o-color-info1) 53%,transparent)}
+.o-layer.od-dlg-root{display:block;overflow:hidden;padding:48px 24px;pointer-events:none}/* v0.42：overflow auto→hidden——滚动条收进弹窗内（用户报「弹窗滚动条在页面」），层不再整页滚 */
+.od-dlg-root .o-layer-mask{position:fixed;pointer-events:auto}
+.od-dlg.od-dlg{
+  pointer-events:auto;
+  width:auto;max-width:980px;margin:0 auto;padding:0;
+  max-height:none;min-height:0;
+  max-height:calc(100vh - 96px);/* v0.42：弹窗限高=视口-层上下 48px 内衬，配合 body 内滚（对齐 A 侧 gcc-modal 同配方） */
+  display:flex;flex-direction:column;
+  --dlg-radius:8px;
+  --dlg-bg-color:var(--o-color-control5);
+  --dlg-min-width:0;
+  --dlg-shadow:none;
+  --dlg-body-padding:0;
+  --dlg-header-gap:0;
+  box-shadow:none;
+  background-color:var(--o-color-control5);
+  border:1px solid var(--o-color-control4);
+  border-radius:8px;
+  overflow:visible;position:relative;
+}
+.od-dlg-820.od-dlg-820{max-width:820px}
+.od-dlg-640.od-dlg-640{max-width:640px}
+.od-dlg .o-dlg-header{padding:0;border:0;background:none;flex:none}
+.od-dlg .o-dlg-actions,.od-dlg .o-dlg-footer{display:none}
+.od-dlg .o-dlg-body{display:block;padding:0;overflow:auto;max-height:none;flex:1 1 auto;min-height:0}/* v0.42：visible→auto + flex 伸缩——滚动条落在弹窗正文内 */
+.od-dlg .o-dlg-body-content{padding:0;width:100%;overflow:visible}
+.od-dlg .o-dlg-btn-close{display:none}
+
+/* 顶栏外链「测评工具 ↗」→ OLink（.nlink 配方的 scoped 保底，防库内复合类抢 specificity） */
+a.od-nlink.od-nlink{
+  position:relative;display:flex;align-items:center;gap:5px;
+  font-size:14px;color:var(--o-color-info3);
+  background:none;border:0;padding:0 14px;height:100%;
+  text-decoration:none;transition:color var(--duration-s);
+}
+a.od-nlink.od-nlink:hover{color:var(--o-color-primary1);text-decoration:none}
+
+/* G1：顶栏 nav → OMenu 水平受控（配方逐行 = GCC 主页 .gcc-nav L438-446）：去背景/去 indicator；选中态蓝字加粗 + item 底部 2px 下划线（复刻原 .nlink.on::after，几何同 left/right:14px、bottom:0） */
+.od-nav.o-menu{--menu-width:auto;--menu-bg-color:transparent;--menu-indicator-width:0;--menu-color:var(--o-color-info3);--menu-color-selected:var(--o-color-primary1);--menu-bg-color-hover:transparent;--menu-bg-color-selected:transparent;width:auto;min-width:0;height:var(--header-height);display:flex;flex-direction:row;align-items:center;background:transparent}
+.od-nav .o-menu-item{height:100%;width:auto;flex:none;padding:0;background:transparent;position:relative;display:flex;align-items:center}
+.od-nav .o-menu-item-content{height:100%;padding:0;display:flex;align-items:center;background:transparent;color:inherit;font-size:14px}
+.od-nav .o-menu-item:hover,.od-nav .o-menu-item-content:hover{background:transparent}
+.od-nav .o-menu-indicator{display:none}
+.od-nav .o-menu-item-selected,.od-nav .o-menu-item-selected .o-menu-item-content{background:transparent;color:var(--o-color-primary1)}
+.od-nav .o-menu-item-selected .nlink{color:var(--o-color-primary1);font-weight:var(--fw-bold)}
+.od-nav .o-menu-item-selected::after{content:"";position:absolute;left:14px;right:14px;bottom:0;height:2px;background:var(--o-color-primary1)}
+/* G7：概览卡 → OCard（配方 = GCC 主页 .o-card.ov-card L412/415）：块级化/溢出可见/去阴影；视觉全权交 kept .ov-card L203-204（border/radius/padding/hover 描边） */
+.o-card.ov-card{display:block;overflow:visible}
+.o-card.ov-card{box-shadow:none}
+
+/* 页脚链接 → OLink（原型 .ft a 配方 L217/219 的 scoped 保底：常态 text-3、hover 主色+下划线） */
+.ft a.od-ft-link.od-ft-link{
+  display:block;font-size:13px;color:var(--o-color-info3);
+  padding:4px 0;text-decoration:none;
+}
+.ft a.od-ft-link.od-ft-link:hover{color:var(--o-color-primary1);text-decoration:underline}
+
+/* 原型内联样式 → scoped class（模板零内联 style 纪律） */
+.od-filters{margin-bottom:20px}/* 原型 L392 .filters style="margin-bottom:20px" */
+.od-chart-scroll{overflow-x:auto}/* 原型 L406 #aisChart style="overflow-x:auto" */
+.od-mt24{margin-top:24px}/* 原型 #accScatterWrap style="margin-top:24px" */
+.od-pdf-box{border:1px solid var(--color-border);border-radius:8px;background:var(--color-bg-section);padding:48px 32px;text-align:center}/* 原型 pdfModal 占位盒内联样式（🛠 自绘块，消费②层变量） */
+.od-pdf-box .mono{font-size:20px;color:var(--color-text-3)}
+.od-pdf-box .note{margin:12px 0 20px}
+</style>
+</head>
+<body>
+<div id="app">
+
+
+<!-- ==================== 顶栏（原型 L237-247 🛠 自绘：导航按钮为原生 button.nlink，外链为 OLink 等价替换 <a class="nlink">） ==================== -->
+<header class="hd">
+  <div class="hd-in">
+    <div class="logo" @click="go('home')"><span>AISBench<small>// AI INFERENCE BENCHMARK</small></span></div>
+    <!-- G1 组件化：nav → OMenu 水平受控（配方 = GCC 主页 .gcc-nav L438-446）；选中态由 o-menu-item-selected 驱动（蓝字加粗 + 底部 2px 下划线），.nlink.on 绑定退役（CSS 保留为等价文档） -->
+    <o-menu class="nav od-nav" aria-label="站点导航" :model-value="page === 'home' ? 'nav-home' : page === 'acc' ? 'nav-acc' : page === 'perf' ? 'nav-perf' : ''">
+      <o-menu-item value="nav-home"><button class="nlink" id="nav-home" @click="go('home')">首页</button></o-menu-item><!-- o-menu-item 拦截冒泡：直接 @click 绑 go，不依赖 document 委托（同主页 L596 注） -->
+      <o-menu-item value="nav-acc"><button class="nlink" id="nav-acc" @click="go('acc')">精度榜单</button></o-menu-item>
+      <o-menu-item value="nav-perf"><button class="nlink" id="nav-perf" @click="go('perf')">性能榜单</button></o-menu-item>
+      <o-menu-item value="nav-ext"><!-- v0.27：外链 OLink 化（原型 <a class="nlink">）；:hover-underline="false" 对齐 .nlink:hover 无下划线配方 -->
+        <o-link class="nlink od-nlink" href="https://github.com/AISBench/benchmark" target="_blank" rel="noopener" :hover-underline="false">测评工具 ↗</o-link>
+      </o-menu-item>
+    </o-menu>
+  </div>
+</header>
+
+<main>
+
+<!-- ==================== 首页：左文 + 右 AI 矢量动图 ==================== -->
+<section class="page" :class="{ show: page === 'home' }" id="page-home">
+  <div class="hero">
+    <div class="wrap hero-split">
+      <div>
+        <!-- 🔶 .badge → OTag outline（红容器徽标配方经 .od-badge 适配） -->
+        <o-tag class="od-badge" variant="outline">// AI INFERENCE BENCHMARK</o-tag>
+        <!-- v0.26：入口标题与详细描述改版；删"查看技术文档""测评工具"按钮，浏览榜单改两个并列按钮 -->
+        <h1>AISBench: <em>AI评测领域的统一标尺</em></h1>
+        <p class="sub">依托统一评测标准，全面评估AI模型、Agent与推理系统的精度、性能及综合能力，打造客观可信、可横向比较的AI能力评价与行业排名平台。</p>
+        <div class="hero-cta">
+          <!-- v0.27：两个按钮设计完全一致（同为主按钮样式）；🔶 .btn → OButton（.od-btn-hero 钉 40px/8px 圆角/主色配方） -->
+          <o-button class="od-btn-hero" @click="go('acc')">精度榜单</o-button>
+          <o-button class="od-btn-hero" @click="go('perf')">性能榜单</o-button>
+        </div>
+      </div>
+      <div>
+        <!-- AI 风格矢量动图：神经网络 + 轨道 + 数据流粒子（内联 SVG + CSS/SMIL 循环动画）🛠 逐字保留 -->
+        <svg class="ai-anim" viewBox="0 0 520 420" role="img" aria-label="AI 神经网络矢量动图">
+          <defs>
+            <radialGradient id="gGlow" cx="50%" cy="50%" r="50%">
+              <stop offset="0%" stop-color="rgba(9,105,218,.16)"/>
+              <stop offset="100%" stop-color="rgba(9,105,218,0)"/>
+            </radialGradient>
+            <linearGradient id="gBar" x1="0" y1="1" x2="0" y2="0">
+              <stop offset="0%" stop-color="#0969DA"/>
+              <stop offset="100%" stop-color="#1488C6"/>
+            </linearGradient>
+          </defs>
+          <circle cx="260" cy="210" r="200" fill="url(#gGlow)"/>
+          <g class="orbit1"><circle cx="260" cy="210" r="168" fill="none" stroke="#D9DDE2" stroke-dasharray="3 7"/></g>
+          <g class="orbit2"><circle cx="260" cy="210" r="128" fill="none" stroke="#C3C8CF" stroke-dasharray="2 6"/></g>
+          <!-- 轨道粒子 -->
+          <circle r="5" fill="#0969DA">
+            <animateMotion dur="10s" repeatCount="indefinite" path="M260,42 A168,168 0 1,1 259.9,42 Z"/>
+          </circle>
+          <circle r="4" fill="#FA7305">
+            <animateMotion dur="14s" repeatCount="indefinite" path="M260,338 A128,128 0 1,0 259.9,338 Z"/>
+          </circle>
+          <!-- 神经网络连线（数据流） -->
+          <g stroke="#8FBDF0" stroke-width="1.4" class="flow">
+            <line x1="150" y1="150" x2="260" y2="120"/><line x1="150" y1="210" x2="260" y2="170"/>
+            <line x1="150" y1="270" x2="260" y2="230"/><line x1="150" y1="150" x2="260" y2="270"/>
+            <line x1="260" y1="120" x2="370" y2="160"/><line x1="260" y1="170" x2="370" y2="210"/>
+            <line x1="260" y1="230" x2="370" y2="260"/><line x1="260" y1="270" x2="370" y2="210"/>
+          </g>
+          <!-- 神经网络节点 -->
+          <g fill="#fff" stroke="#0969DA" stroke-width="2">
+            <circle class="node" cx="150" cy="150" r="6"/><circle class="node d1" cx="150" cy="210" r="6"/><circle class="node d2" cx="150" cy="270" r="6"/>
+            <circle class="node d1" cx="260" cy="120" r="6"/><circle class="node d2" cx="260" cy="170" r="6"/><circle class="node d3" cx="260" cy="230" r="6"/><circle class="node d4" cx="260" cy="270" r="6"/>
+            <circle class="node d2" cx="370" cy="160" r="6"/><circle class="node d3" cx="370" cy="210" r="6"/><circle class="node d4" cx="370" cy="260" r="6"/>
+          </g>
+          <!-- 底部吞吐柱 -->
+          <g>
+            <rect x="180" y="330" width="22" height="40" rx="3" fill="#BBD8F5"><animate attributeName="height" values="40;64;40" dur="3s" repeatCount="indefinite"/><animate attributeName="y" values="330;306;330" dur="3s" repeatCount="indefinite"/></rect>
+            <rect x="212" y="316" width="22" height="54" rx="3" fill="#5EA9EC"><animate attributeName="height" values="54;30;54" dur="3.6s" repeatCount="indefinite"/><animate attributeName="y" values="316;340;316" dur="3.6s" repeatCount="indefinite"/></rect>
+            <rect x="244" y="300" width="22" height="70" rx="3" fill="url(#gBar)"><animate attributeName="height" values="70;92;70" dur="2.8s" repeatCount="indefinite"/><animate attributeName="y" values="300;278;300" dur="2.8s" repeatCount="indefinite"/></rect>
+            <rect x="276" y="312" width="22" height="58" rx="3" fill="#5EA9EC"><animate attributeName="height" values="58;80;58" dur="3.4s" repeatCount="indefinite"/><animate attributeName="y" values="312;290;312" dur="3.4s" repeatCount="indefinite"/></rect>
+            <rect x="308" y="326" width="22" height="44" rx="3" fill="#BBD8F5"><animate attributeName="height" values="44;24;44" dur="3.1s" repeatCount="indefinite"/><animate attributeName="y" values="326;346;326" dur="3.1s" repeatCount="indefinite"/></rect>
+          </g>
+          <text x="260" y="398" text-anchor="middle" font-size="12" fill="#8C959D" font-family="JetBrains Mono,monospace">// tokens per second</text>
+        </svg>
+      </div>
+    </div>
+  </div>
+  <!-- v0.26：精度测评榜单概览（参照 aisbench_demo.html「推荐榜单总览」六数据集卡片）；🔶 JS innerHTML 注入改 computed ovCards + v-for（结构逐字对齐 renderAccOverview L878-883） -->
+  <div class="sec alt"><!-- v0.37：内联 border-top:0 删除（.sec 分隔线已按主页面 L80 移到底部，该内联成僵尸） -->
+    <div class="wrap">
+      <div class="sec-hd">
+        <div><h2>精度测评榜单概览</h2><div class="ssub">六大数据集基准的模型精度排行 · 点击卡片查看完整榜单</div></div>
+      </div>
+      <div class="ov-grid" id="accOverview">
+        <!-- G7 组件化：概览卡 div.ov-card → OCard（#card 插槽承载全部内容，配方同 GCC 主页 L740）；@click 经 attrs 透传到根 -->
+        <o-card class="ov-card" v-for="c in ovCards" :key="c.ds" @click="goToAccDs(c.di)"><template #card>
+          <div class="ov-hd"><h3>{{ c.ds }}</h3><o-tag class="od-tag-blue" variant="outline">精度</o-tag></div>
+          <div class="ov-info">{{ c.desc }}</div>
+          <div class="ov-rank">
+            <div class="ov-rank-item" :class="{ top: i === 0 }" v-for="(r, i) in c.top" :key="r.name"><span class="no">{{ i + 1 }}</span><span class="nm">{{ r.name }}</span><span class="sc">{{ r.score.toFixed(1) }}</span></div>
+          </div>
+        </template></o-card>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<!-- ==================== 精度榜单 ==================== -->
+<section class="page" :class="{ show: page === 'acc' }" id="page-acc"><!-- v0.37：内联 display:none 删除，显隐改 .page/.show class 机制（主页面 L59） -->
+  <div class="hero mini">
+    <div class="wrap">
+      <o-tag class="od-badge" variant="outline">// ACCURACY RANKING</o-tag>
+      <h1>精度榜单</h1>
+      <p class="sub">六大数据集基准的模型精度排行：支持列表模式与图表模式双视图，按分数从高到低排序。</p>
+    </div>
+  </div>
+  <!-- v0.26：页头与表格区设计区隔（参照性能榜单"对比分析"标题+副标题样式），标题改名"数据集基准排行榜"，删小字行，视图按钮改名 -->
+  <div class="sec alt"><!-- v0.37：内联 padding-top:8px 删除——用户示例间距修复：hero-mini 底部分隔线与「数据集基准排行榜」标题之间恢复主页面 .sec 的 56px 竖向节奏 -->
+    <div class="wrap">
+      <div class="sec-hd">
+        <div><h2>数据集基准排行榜</h2><div class="ssub">切换数据集与视图，按分数从高到低排序</div></div>
+        <!-- 🔶 .seg#accView → OTab variant="button" round="pill"（v-model 数字索引；panes 仅承载页签，正文由下方 v-show 承接） -->
+        <o-tab class="od-seg" id="accView" variant="button" round="pill" transition="" v-model="accViewIdx">
+          <o-tab-pane label="列表模式" :value="0"></o-tab-pane><!-- 缺省 value 会以 label 字符串作页签标识，与数字 v-model 不匹配（无选中态且切换崩溃），显式绑定数字索引 -->
+          <o-tab-pane label="图表模式" :value="1"></o-tab-pane>
+        </o-tab>
+      </div>
+      <!-- v0.30 ⑩：复现方式下拉筛选器（用户验收调整：由并排 seg 改为下拉筛选器；仍位于数据集页签上方、必选其一、无「全部」、默认官方论文复现、不设计数文字）🔶 select.sel → OSelect -->
+      <!-- G10：repro-lbl span → OFormItem 可见 label（原版 L345-350「复现方式：」逐字承接；OForm 仅作布局容器，无校验语义；.repro-row 类保留承接 flex/gap12/mb16 布局） -->
+      <o-form class="repro-row od-repro-form">
+        <o-form-item>
+          <template #label>复现方式：</template>
+          <o-select class="od-repro-sel" id="accRepro" v-model="accRepro" aria-label="复现方式">
+            <o-option label="官方论文复现" value="official"></o-option>
+            <o-option label="统一方法复现" value="unified"></o-option>
+          </o-select>
+        </o-form-item>
+      </o-form>
+      <!-- 🔶 .ctabs#accTabs（JS 注入 6 数据集按钮）→ OTab 下划线页签，v-model=accDs -->
+      <o-tab class="od-ctabs" id="accTabs" transition="" v-model="accDs">
+        <o-tab-pane v-for="(ds,di) in accDsList" :key="ds" :label="ds" :value="di"></o-tab-pane><!-- :value 绑定数字索引（accDs 消费方 ACC_DS[this.accDs] / goToAccDs(di) 均为索引） -->
+      </o-tab>
+      <!-- 🔶 .tblwrap>table.tbl → ODataTable（th width:64px → 列 width；行内容由 accColumns formatter VNode 渲染；.od-tbl 承接容器描边/圆角配方） -->
+      <div id="accNumWrap" v-show="accView === 'num'">
+        <!-- v0.43（用户指令）：数据 20 名；:height=accTblH（mounted 实测表头+15 行）→ 视口固定 15 行高、表头钉住、余量表内滚动 -->
+        <o-data-table ref="accTbl" class="od-tbl" :columns="accColumns" :data="accTableRows" :height="accTblH" row-key="id" border="row-frame" highlight-current-row></o-data-table>
+      </div>
+      <div id="accImgWrap" class="accchart" v-show="accView === 'img'">
+        <div class="ytitle">分数</div>
+        <!-- v0.31：柱状图横向坐标轴标注（横轴=模型名，用户验收调整：此前未标明） -->
+        <div class="xtitle">模型名</div>
+        <div class="accgrid" id="accGrid"></div>
+      </div>
+      <!-- v0.29 ⑫ / v0.31：图表模式下柱状图下方散点图（列表模式隐藏；卡片标题与说明行已按用户验收调整删除，图表由内部轴标注「模型发布时间」「分数」自描述）；内联 display:none/margin-top:24px → v-show + .od-mt24 -->
+      <div id="accScatterWrap" class="od-mt24" v-show="accView === 'img'">
+        <div class="chart-box">
+          <div id="accScatter"></div>
+          <div class="legend" id="accScatterLegend"></div><!-- v0.35 评审修复 P1-2：散点图「颜色=厂商」编码图例（复用全局 .legend/.dot 样式，JS 按当前数据集厂商填充） -->
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ==================== 性能榜单（对比分析 + 测评记录表 + 小模型表格） ==================== -->
+<section class="page" :class="{ show: page === 'perf' }" id="page-perf"><!-- v0.37：内联 display:none 删除，显隐改 .page/.show class 机制（主页面 L59） -->
+  <div class="hero mini">
+    <div class="wrap">
+      <o-tag class="od-badge" variant="outline">// PERFORMANCE RANKING</o-tag>
+      <h1>性能榜单</h1>
+      <p class="sub">以提交记录为单位的吞吐 / TTFT / E2EL 多维折线对比与测评记录，另附小模型性能表格。</p>
+    </div>
+  </div>
+
+  <div class="sec alt"><!-- v0.37：内联 padding-top:8px 删除——用户示例间距修复：hero-mini 底部分隔线与「数据集基准排行榜」标题之间恢复主页面 .sec 的 56px 竖向节奏 -->
+    <div class="wrap">
+      <div class="sec-hd">
+        <div><h2>对比分析</h2><div class="ssub">数据源：筛选器组合命中记录</div></div>
+      </div>
+      <!-- v0.42 用户验收：4 个筛选器改规定组件 OSelect 默认形态（模型单选可搜索；芯片类型/精度多选可清除；上下文单选）；
+           原 ODropdown+OButton.od-fdd-btn 摹写与嵌套面板（搜索框/radio/checkbox/清除按钮）整体移除；
+           v-model 数据接线不变（aisModel/aisChips/aisCtx/aisPrecs → aisFilteredRows/computed 与 watchers 原样生效） -->
+      <div class="filters od-filters">
+        <o-select class="od-f-sel od-f-model" v-model="aisModel" filterable placeholder="模型" @options-visible-change="pinSelPop">
+          <o-option v-for="m in modelOptions" :key="m" :label="m" :value="m"></o-option>
+        </o-select>
+        <!-- v0.44（用户缺陷⑧⑨）：max-tag-count=1 + 单行裁切 CSS + hover 折叠弹全选项（与精度筛选器同效果）；responsive 模式的内联宽度与裁切 CSS 冲突已弃用 -->
+        <o-select class="od-f-sel" v-model="aisChips" multiple clearable :max-tag-count="1" show-fold-tags="hover" placeholder="芯片类型" @options-visible-change="pinSelPop">
+          <o-option v-for="c in chipOptions" :key="c" :label="c" :value="c"></o-option>
+        </o-select>
+        <o-select class="od-f-sel od-ctx-sel" v-model="aisCtx" placeholder="上下文" @options-visible-change="pinSelPop">
+          <o-option label="1k/1k" value="1k/1k"></o-option>
+          <o-option label="8k/8k" value="8k/8k"></o-option>
+        </o-select>
+        <o-select class="od-f-sel od-f-prec" v-model="aisPrecs" multiple clearable :max-tag-count="1" show-fold-tags="hover" placeholder="精度" @options-visible-change="pinSelPop">
+          <o-option v-for="p in precOptions" :key="p" :label="p" :value="p"></o-option>
+        </o-select>
+        <span class="note" id="aisHit">{{ aisHitText }}</span><!-- v0.37：ssub→note（主页面辅助说明文字配方 L36；位于 .filters flex 容器内，原 margin 内联不再需要） -->
+      </div>
+      <!-- 🔶 .ctabs#aisTabs → OTab 下划线页签（v-model=aisView，data-av 机制由索引承接） -->
+      <o-tab class="od-ctabs" id="aisTabs" transition="" v-model="aisView">
+        <o-tab-pane label="吞吐 vs 交互性" :value="0"></o-tab-pane><!-- 缺省 value 以 label 字符串作标识，与数字 v-model 不匹配：显式绑定索引（AIS_VIEWS[aisView]） -->
+        <o-tab-pane label="吞吐 vs TTFT 时延" :value="1"></o-tab-pane>
+        <o-tab-pane label="吞吐 vs 端到端时延" :value="2"></o-tab-pane>
+      </o-tab>
+      <!-- 🛠 折线图：renderAisChart 逐字 innerHTML 注入（#aisAxisNote/#aisChart/#aisLegend 保持原 id；内联 overflow-x:auto → .od-chart-scroll） -->
+      <div class="chart-box">
+        <div class="chart-hd"><span class="t" id="aisAxisNote"></span></div>
+        <div id="aisChart" class="od-chart-scroll"></div>
+        <div class="legend" id="aisLegend"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="sec">
+    <div class="wrap">
+      <div class="sec-hd">
+        <div><h2>测评记录表</h2><div class="ssub">每页 10 条 · 查看打开详细报告弹层</div></div>
+      </div>
+      <!-- 🔶 .tblwrap>table.tbl → ODataTable（全量 12 条分页切片 aisPageRows，行「查看」formatter VNode）；.pager#aisPager → OPagination（prev/next 文本经④层 ::after 承接；.pg-note 走 #total 插槽） -->
+      <o-data-table class="od-tbl" :columns="aisColumns" :data="aisPageRows" row-key="id" border="row-frame" highlight-current-row></o-data-table>
+      <o-pagination class="od-pager" id="aisPager" v-model:page="aisPage" :total="aisTotal" :page-size="perPage" :page-sizes="[10]" :layout="['pager', 'total']">
+        <template #total="{ total, pageCount }">
+          <span class="pg-note">共 {{ total }} 条 · 每页 10 条 · 第 {{ aisPage }}/{{ pageCount }} 页</span>
+        </template>
+      </o-pagination>
+    </div>
+  </div>
+
+  <div class="sec alt">
+    <div class="wrap">
+      <div class="sec-hd">
+        <div><h2>小模型表格</h2><div class="ssub">面向小模型的准确率 / 时延 / 吞吐测评记录</div></div>
+      </div>
+      <!-- 🔶 同上 → ODataTable（v0.43：12 条分页切片 smPageRows，每页 10 条与测评记录表等高）+ OPagination（复刻 #aisPager 配方） -->
+      <o-data-table class="od-tbl" :columns="smColumns" :data="smPageRows" row-key="id" border="row-frame" highlight-current-row></o-data-table>
+      <o-pagination class="od-pager" id="smPager" v-model:page="smPage" :total="smTotal" :page-size="perPage" :page-sizes="[10]" :layout="['pager', 'total']">
+        <template #total="{ total, pageCount }">
+          <span class="pg-note">共 {{ total }} 条 · 每页 10 条 · 第 {{ smPage }}/{{ pageCount }} 页</span>
+        </template>
+      </o-pagination>
+    </div>
+  </div>
+</section>
+</main>
+
+<!-- ==================== 页脚（🛠 自绘配方逐字保留；站内/文档链接 → OLink.od-ft-link，返回主站保留原生 <a>（真实跳转）） ==================== -->
+<footer class="ft">
+  <div class="wrap">
+    <div class="ft-grid">
+      <div>
+        <div class="logo"><span>AISBench</span></div>
+        <p class="slogan">// AI 推理性能测评 · 公开数据平台</p>
+      </div>
+      <div><h5>榜单</h5><o-link class="od-ft-link" href="javascript:void(0)" @click="go('acc')">精度榜单</o-link><o-link class="od-ft-link" href="javascript:void(0)" @click="go('perf')">性能榜单</o-link></div>
+      <!-- v0.26：页脚"工具"下放置四个文档入口（支持 PDF 浏览），删除原"技术白皮书" -->
+      <div>
+        <h5>工具</h5>
+        <o-link class="od-ft-link" href="https://github.com/AISBench/benchmark" target="_blank" rel="noopener">代码仓（GitHub）↗</o-link><!-- v0.35 P2-4：外链补 ↗（同顶栏「测评工具 ↗」约定） -->
+        <o-link class="od-ft-link" href="javascript:void(0)" @click="openPdf('GB/T 45087—2024《人工智能 服务器系统性能测试方法》.pdf')">GB/T 45087—2024《人工智能 服务器系统性能测试方法》</o-link>
+        <o-link class="od-ft-link" href="javascript:void(0)" @click="openPdf('GB/T 46346-2025《人工智能 计算中心 计算能力评估》.pdf')">GB/T 46346-2025《人工智能 计算中心 计算能力评估》</o-link>
+        <o-link class="od-ft-link" href="javascript:void(0)" @click="openPdf('AISBench IEEE标准 2937-2022.pdf')">AISBench IEEE标准 2937-2022</o-link>
+        <o-link class="od-ft-link" href="javascript:void(0)" @click="openPdf('AISBench论文.pdf')">AISBench论文</o-link>
+      </div>
+      <div><h5>返回</h5><a href="prototype_Benchmark网站_HiFloat重设计_20261028.html">← GCC Benchmark 主站</a></div>
+    </div>
+    <div class="ft-bot"><span>© 2026 AISBench（DEMO 原型）</span><span class="mono">// inference_benchmark</span></div>
+  </div>
+</footer>
+
+
+<!-- ==================== AISBench 详细报告弹层（🔶 .modal/.mbox → ODialog：遮罩/宽 980/圆角/边距经 .od-dlg-root+.od-dlg 适配；.mhd/.mclose 🛠 走 #header 插槽；kv/数据表 🛠 原生 table + v-html 逐字保留；内联 max-width → main-class 宽度档） ==================== -->
+<o-dialog v-model:visible="aisModalVisible" class="od-dlg-root" main-class="od-dlg" hide-close role="dialog" aria-modal="true" aria-label="AISBench 详细报告">
+  <template #header>
+    <div class="mhd">
+      <div><h3>{{ aisMTitle }}</h3><div class="sub">{{ aisMSub }}</div></div>
+      <button class="mclose" aria-label="关闭" @click="aisModalVisible = false">✕</button>
+    </div>
+  </template>
+  <div class="mbody">
+    <div class="msec"><h4>基础信息汇总 · 总览</h4><div class="tblwrap"><table class="tbl kv"><tbody v-html="aisMOv"></tbody></table></div></div>
+    <div class="msec"><h4>基础信息汇总 · 硬件</h4><div class="tblwrap"><table class="tbl kv"><tbody v-html="aisMHw"></tbody></table></div></div>
+    <div class="msec"><h4>基础信息汇总 · 软件</h4><div class="tblwrap"><table class="tbl kv"><tbody v-html="aisMSw"></tbody></table></div></div>
+    <div class="msec"><h4>测试数据（行=10 指标，列=并发数）</h4><div class="tblwrap"><table class="tbl"><thead><tr><th>指标</th><th>并发 1</th><th>并发 8</th><th>并发 16</th><th>并发 32</th></tr></thead><tbody v-html="aisMDataHtml"></tbody></table></div></div>
+  </div>
+</o-dialog>
+
+<!-- ==================== PDF 预览/下载弹层 ==================== -->
+<o-dialog v-model:visible="pdfVisible" class="od-dlg-root" main-class="od-dlg od-dlg-820" hide-close role="dialog" aria-modal="true" aria-label="PDF 文档">
+  <template #header>
+    <div class="mhd">
+      <div><h3>{{ pdfTitle }}</h3><!-- v0.37：内联 --fs-h4 移除，继承 .mhd h3 = 主页面 L285 的 22px/30px/700 --><div class="sub">在线预览 · 支持下载</div></div>
+      <button class="mclose" aria-label="关闭" @click="pdfVisible = false">✕</button>
+    </div>
+  </template>
+  <div class="mbody">
+    <!-- 🔶 预览区内联样式（border/radius/bg/padding/text-align + mono 20px + note margin）→ .od-pdf-box 及子类（④层，消费②层 --color-* 变量） -->
+    <div class="od-pdf-box">
+      <div class="mono">// PDF PREVIEW</div><!-- v0.37：--fs-h4 token 裁剪后改 20px 字面值，渲染不变 -->
+      <p class="note">此处为 PDF 在线预览区（DEMO 占位）。正式版内嵌 PDF 阅读器渲染全文。</p>
+      <o-button class="od-btn-hero" id="pdfDl" @click="pdfDownload">下载 PDF</o-button>
+    </div>
+  </div>
+</o-dialog>
+<!-- G4：图表悬浮提示容器 → OPopup 受控（DOM 位置逐字保留：pdf 弹层与测试方法弹层之间；trigger=none + targetRect 数据定位——clientX/Y 天然视口坐标零换算；position="bl" → 弹层左上角=rect 左下角，rect 已烘焙原版 x+16/y+16 偏移、offsetWidth(=288 定宽 border-box) 右缘翻转与 8px 下限；transition 空串=原版无过渡；adjust* false=定宽 288 由 .hc-pop-body 配方接管） -->
+<o-popup v-model:visible="tipVisible" :target-rect="tipRect" trigger="none" position="bl" transition="" :adjust-min-width="false" :adjust-width="false" :hide-when-target-invisible="false" wrap-class="hc-pop" body-class="hc-pop-body"><div v-html="tipHtml"></div></o-popup>
+
+<!-- v0.29 ⑪：测试方法弹窗——删除「参数配置」表格与「制作方法」链接，正文换成 Markdown 格式文本（渲染为富文本展示，每数据集一份占位文档） -->
+<o-dialog v-model:visible="methodVisible" class="od-dlg-root" main-class="od-dlg od-dlg-640" hide-close role="dialog" aria-modal="true" aria-label="测试方法">
+  <template #header>
+    <div class="mhd">
+      <div><h3>{{ methodTitle }}</h3><!-- v0.37：内联 --fs-h4 移除，继承 .mhd h3 = 主页面 L285 的 22px/30px/700 --><div class="sub">该数据集榜单的测试方法说明</div></div>
+      <button class="mclose" aria-label="关闭" @click="methodVisible = false">✕</button>
+    </div>
+  </template>
+  <div class="mbody">
+    <div class="msec md" v-html="methodMdHtml"></div><!-- v0.37：内联 border-bottom:0 删除（.msec 分隔线已按主页面 L291 改为纯间距，无底边线可复位） -->
+  </div>
+</o-dialog>
+
+</div><!-- /#app -->
+
+<script>
+/* ==================== 工具函数 ==================== */
+var GRAY=["#0969DA","#FA7305","#0BB151","#2E53FA","#984BF6","#8C959D"];
+function dotHtml(i){return '<span class="dot" style="background:'+GRAY[i%GRAY.length]+'"></span>';}
+function kvRow(k,v){return "<tr><td>"+k+"</td><td>"+v+"</td></tr>";}
+/* 🔶 原型 L521 顶层 `var tip=document.getElementById("tooltip")` 缓存 + L522-528 DOM 直写 → G4 OPopup 受控：tipVm（mounted 赋 this）写 data 三态 tipVisible/tipHtml/tipRect；
+   边缘翻转定位公式逐字不变（原版 tip.offsetWidth 实测 → 全局 *{box-sizing:border-box} L98 下定宽 288 常量等价；clientX/Y 视口坐标=targetRect 契约零换算） */
+var tipVm=null;
+function showTip(html,x,y){
+  var w=288,px=x+16;if(px+w>window.innerWidth-12)px=x-w-12;
+  tipVm.tipHtml=html;tipVm.tipRect.left=Math.max(8,px);tipVm.tipRect.top=Math.max(8,y+16);tipVm.tipVisible=true;
+}
+function hideTip(){if(tipVm)tipVm.tipVisible=false;}
+/* ==================== v0.29 ⑪：轻量 Markdown 渲染器（弹窗 md 正文 → 富文本；自包含无外部依赖，DEMO 离线可用） ==================== */
+/* 支持：#~#### 标题、段落（连续行合并）、无序/有序列表、管道表格、``` 围栏代码、引用块、--- 分隔线、行内 `code`、**加粗**、[链接](url) */
+function mdInline(t){
+  return String(t).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")
+    .replace(/`([^`]+)`/g,"<code>$1</code>")
+    .replace(/\*\*([^*]+)\*\*/g,"<strong>$1</strong>")
+    .replace(/\[([^\]]+)\]\(([^)\s]+)\)/g,'<a href="$2">$1</a>');
+}
+function mdRender(src){
+  var lines=String(src).split("\n"),out=[],i=0;
+  function row(l){return l.trim().replace(/^\||\|$/g,"").split("|");}
+  function isSep(l){return /^\s*\|?\s*:?-{3,}/.test(l)&&/^[\s|:\-]+$/.test(l);}
+  function esc(s){return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");}
+  while(i<lines.length){
+    var ln=lines[i];
+    if(!ln.trim()){i++;continue;}
+    if(/^```/.test(ln.trim())){
+      var buf=[];i++;
+      while(i<lines.length&&!/^```/.test(lines[i].trim())){buf.push(lines[i]);i++;}
+      i++;
+      out.push("<pre><code>"+esc(buf.join("\n"))+"</code></pre>");
+      continue;
+    }
+    var h=ln.match(/^(#{1,4})\s+(.*)$/);
+    if(h){out.push("<h"+h[1].length+">"+mdInline(h[2])+"</h"+h[1].length+">");i++;continue;}
+    if(/^\s*(-{3,}|\*{3,})\s*$/.test(ln)){out.push("<hr>");i++;continue;}
+    if(/^\s*>/.test(ln)){
+      var qb=[];
+      while(i<lines.length&&/^\s*>/.test(lines[i])){qb.push(mdInline(lines[i].replace(/^\s*>\s?/,"")));i++;}
+      out.push("<blockquote>"+qb.join("<br>")+"</blockquote>");
+      continue;
+    }
+    if(/^\s*\|.*\|\s*$/.test(ln)&&i+1<lines.length&&isSep(lines[i+1])){
+      var th=row(ln).map(function(c){return "<th>"+mdInline(c.trim())+"</th>";}).join("");
+      i+=2;var trs=[];
+      while(i<lines.length&&/^\s*\|.*\|\s*$/.test(lines[i])){
+        trs.push("<tr>"+row(lines[i]).map(function(c){return "<td>"+mdInline(c.trim())+"</td>";}).join("")+"</tr>");i++;
+      }
+      out.push("<table><thead><tr>"+th+"</tr></thead><tbody>"+trs.join("")+"</tbody></table>");
+      continue;
+    }
+    if(/^\s*[-*]\s+/.test(ln)){
+      var ul=[];
+      while(i<lines.length&&/^\s*[-*]\s+/.test(lines[i])){ul.push("<li>"+mdInline(lines[i].replace(/^\s*[-*]\s+/,""))+"</li>");i++;}
+      out.push("<ul>"+ul.join("")+"</ul>");
+      continue;
+    }
+    if(/^\s*\d+[.)]\s+/.test(ln)){
+      var ol=[];
+      while(i<lines.length&&/^\s*\d+[.)]\s+/.test(lines[i])){ol.push("<li>"+mdInline(lines[i].replace(/^\s*\d+[.)]\s+/,""))+"</li>");i++;}
+      out.push("<ol>"+ol.join("")+"</ol>");
+      continue;
+    }
+    var pb=[];
+    while(i<lines.length&&lines[i].trim()&&!/^\s*(#{1,4}\s|>|```|[-*]\s|\d+[.)]\s|\||-{3,}\s*$|\*{3,}\s*$)/.test(lines[i])){pb.push(lines[i]);i++;}
+    if(!pb.length){i++;continue;}
+    out.push("<p>"+pb.map(mdInline).join("<br>")+"</p>");
+  }
+  return out.join("");
+}
+/* 🔶 原型 L588-619 的 pdfName/openPdf/pdfDl 监听/bindModal×3/openMethod/PAGES/go 均为 DOM 直写实现，
+   → 等价迁移为 Vue 根组件的 data/methods（见 part10）：弹窗显隐走 ODialog v-model:visible（遮罩点击关闭=组件默认 maskClose，
+   ✕ 关闭走 #header 插槽内 .mclose 按钮），alert()×2 → useToast 轻提示；文案与行为逐字保持 */
+
+/* ==================== 精度榜单（六数据集 × 数字/图像双视图） ==================== */
+var ACC_DS=["GPQA Diamond","DeepSWE","TerminalBench2.1","TerminalBench4.0","AutomationBench","MMMUPro"];
+var ACC_MODELS=[
+  {name:"DeepSeek V4 Pro",tag:"开源",vendor:"deepseek",rel:"2026-08-28",param:"1.6T A40B"},
+  {name:"NVIDIA Nemotron Ultra",tag:"开源",vendor:"NVIDIA",rel:"2025-12-09",param:"1000B A100B"},
+  {name:"Qwen3.7-Max",tag:"闭源",vendor:"qwen",rel:"2026-09-23",param:"1T A32B"},
+  {name:"GLM-5.2",tag:"开源",vendor:"zhipuai",rel:"2026-07-28",param:"355B A32B"},
+  {name:"Doubao-Seed-2.2-lite",tag:"闭源",vendor:"ByteDance",rel:"2026-10-16",param:"268B A10B"},
+  {name:"Kimi K3.5",tag:"开源",vendor:"Moonshot AI",rel:"2026-10-13",param:"397B A17B"},
+  {name:"DeepSeek V4 Flash",tag:"开源",vendor:"deepseek",rel:"2026-08-28",param:"235B A22B"},
+  {name:"MiniMax M3.5",tag:"开源",vendor:"MiniMax",rel:"2026-09-17",param:"230B A10B"},
+  /* v0.26：模型由 8 个扩至 15 个；v0.43（用户指令）：扩至 20 个——页面演示前 20 名，表格视口固定 15 行高、余量走表内滚动条 */
+  {name:"GPT-5.2",tag:"闭源",vendor:"OpenAI",rel:"2026-04-10",param:"未公开"},
+  {name:"Claude Sonnet 5.5",tag:"闭源",vendor:"Anthropic",rel:"2026-06-18",param:"未公开"},
+  {name:"Gemini 3.5 Ultra",tag:"闭源",vendor:"Google",rel:"2026-05-22",param:"未公开"},
+  {name:"腾讯混元 4.0",tag:"开源",vendor:"腾讯",rel:"2026-03-15",param:"830B A52B"},
+  {name:"阶跃星辰 Step-3.5",tag:"闭源",vendor:"阶跃星辰",rel:"2026-07-08",param:"480B A30B"},
+  {name:"百川 5.0",tag:"开源",vendor:"百川智能",rel:"2026-02-28",param:"520B A36B"},
+  {name:"Llama 4.5 405B",tag:"开源",vendor:"Meta",rel:"2025-11-30",param:"405B"},
+  {name:"Mistral Large 3",tag:"开源",vendor:"Mistral AI",rel:"2026-01-19",param:"123B A52B"},
+  {name:"百度文心 5.0",tag:"闭源",vendor:"百度",rel:"2026-04-26",param:"未公开"},
+  {name:"InternLM 3.5",tag:"开源",vendor:"商汤",rel:"2026-05-30",param:"240B A28B"},
+  {name:"Grok 4 Turbo",tag:"闭源",vendor:"xAI",rel:"2026-06-12",param:"未公开"},
+  {name:"Yi 3.0",tag:"开源",vendor:"零一万物",rel:"2026-02-14",param:"180B A24B"}
+];
+/* 每数据集各模型得分（占位数据，渲染时按分数降序） */
+var ACC_SCORES={
+  "GPQA Diamond":[74.8,73.9,73.6,73.1,72.6,72.5,71.4,70.6,69.8,69.2,68.5,67.9,67.3,66.8,66.1,65.4,64.6,63.7,62.9,61.8],
+  "DeepSWE":[74.4,73.2,72.8,68.5,67.1,66.3,65.0,63.2,62.5,61.8,60.9,59.7,58.8,57.6,56.4,55.2,54.1,52.8,51.6,50.3],
+  "TerminalBench2.1":[64.7,63.2,62.5,60.8,59.6,58.9,57.4,56.1,55.3,54.6,53.8,52.7,51.9,50.8,49.6,48.3,47.1,45.8,44.6,43.2],
+  "TerminalBench4.0":[61.5,60.2,59.8,57.6,56.3,55.8,54.2,52.7,51.8,50.9,49.7,48.6,47.5,46.3,45.2,44.1,42.8,41.5,40.3,39.0],
+  "AutomationBench":[55.3,54.1,53.6,51.2,50.4,49.1,47.8,46.2,45.3,44.5,43.6,42.4,41.5,40.3,39.2,38.1,36.8,35.5,34.2,33.0],
+  "MMMUPro":[74.9,74.2,74.0,72.7,72.3,71.1,69.6,68.4,67.8,67.1,66.3,65.5,64.8,63.9,62.7,61.4,60.2,58.9,57.7,56.4]
+};
+/* v0.29 ⑩：统一方法复现分数 = 官方论文复现分数 + 确定性占位偏移（-1.6 ~ +1.6，步长 0.4），切换口径后排名发生可见变化；
+   首页「精度测评榜单概览」卡片固定官方论文复现口径（直接使用 ACC_SCORES），不随此筛选器联动 */
+var ACC_SCORES_U={};
+ACC_DS.forEach(function(ds,di){
+  ACC_SCORES_U[ds]=ACC_SCORES[ds].map(function(v,mi){
+    return Math.max(0,Math.round((v+(((di*7+mi*5)%9)-4)*0.4)*10)/10);
+  });
+});
+function accScore(ds,mi,repro){return (repro==="unified"?ACC_SCORES_U:ACC_SCORES)[ds][mi];}/* 🔶 签名微调：原型读全局 accRepro → 显式 repro 入参（状态入 Vue data；选取表达式逐字） */
+var ACC_EVAL={"GPQA Diamond":"2026-10-18","DeepSWE":"2026-10-20","TerminalBench2.1":"2026-10-22","TerminalBench4.0":"2026-10-24","AutomationBench":"2026-10-26","MMMUPro":"2026-10-28"};
+/* v0.26：数据集简介（用于首页精度测评榜单概览卡片） */
+var ACC_DESC={
+  "GPQA Diamond":"研究生级 Google-Proof 问答，考察模型在科学领域的深度推理能力",
+  "DeepSWE":"软件工程全流程评测，考察模型在真实代码库中的开发与调试能力",
+  "TerminalBench2.1":"终端命令行任务评测 v2.1，考察模型在 CLI 环境中的操作与问题解决能力",
+  "TerminalBench4.0":"终端命令行任务评测 v4.0，新增复杂多步骤任务与系统管理场景",
+  "AutomationBench":"自动化任务评测，考察模型在浏览器自动化、RPA 流程中的执行能力",
+  "MMMUPro":"多模态理解进阶评测，考察模型在跨模态图文推理与学科综合理解能力"
+};
+/* v0.29 ⑪：每数据集一份 Markdown 测试方法文档（占位内容），弹窗中经 mdRender 渲染为富文本 */
+var ACC_MD_META={
+  "GPQA Diamond":{task:"研究生级科学选择题问答（Google-Proof，Diamond 子集）",size:"198 道试题",field:"物理、化学、生物等学科",metric:"平均准确率（Accuracy）",run:"gpqa-diamond",ref:"Reinhold et al., 2024. GPQA: A Graduate-Level Google-Proof Q&A Benchmark."},
+  "DeepSWE":{task:"仓库级软件工程问题求解",size:"974 个编程任务",field:"Python 多仓库工程与单元测试判定",metric:"通过率（Pass@1）",run:"deepswe",ref:"DeepSWE Benchmark 技术报告（占位引用）."},
+  "TerminalBench2.1":{task:"终端命令行与系统编程任务",size:"320 个任务",field:"Linux CLI、Shell 脚本与系统管理",metric:"任务完成率",run:"terminal-bench-2.1",ref:"Terminal-Bench 2.1 任务集文档（占位引用）."},
+  "TerminalBench4.0":{task:"终端命令行任务（扩展版）",size:"480 个任务",field:"容器化环境、多步骤自动化与复杂系统运维",metric:"任务完成率",run:"terminal-bench-4.0",ref:"Terminal-Bench 4.0 任务集文档（占位引用）."},
+  "AutomationBench":{task:"办公与业务流程自动化任务",size:"260 个任务",field:"浏览器自动化、表单处理与跨应用流程编排",metric:"任务完成率",run:"automation-bench",ref:"AutomationBench 评测白皮书（占位引用）."},
+  "MMMUPro":{task:"大学水平多模态理解与推理",size:"1,730 道试题",field:"跨学科图文推理与综合理解",metric:"平均准确率（Accuracy）",run:"mmmu-pro",ref:"Yue et al., 2024. MMMU-Pro: A More Robust Multi-Discipline Multimodal Understanding Benchmark."}
+};
+var ACC_MD={};
+ACC_DS.forEach(function(ds){
+  var m=ACC_MD_META[ds];
+  ACC_MD[ds]=[
+    "> 本文档为 DEMO 占位内容，用于演示 Markdown 正文的富文本渲染效果；正式版将替换为该数据集的实际评测方法文档。",
+    "",
+    "## 方法概述",
+    "",
+    "**"+ds+"** 是面向"+m.task+"的基准测试集，共包含 **"+m.size+"**，覆盖"+m.field+"等方向。数据集定位："+ACC_DESC[ds]+"。榜单以 **"+m.metric+"** 作为主指标，分数范围 0 – 100。",
+    "",
+    "## 评测流程",
+    "",
+    "1. 从标准题库拉取题目，按统一 Prompt 模板渲染为模型输入；",
+    "2. 在统一评测集群上批量执行推理，采用贪心解码；",
+    "3. 对模型输出进行后处理：答案抽取、代码执行或结果比对；",
+    "4. 按题型汇总"+m.metric+"，经复核后写入榜单。",
+    "",
+    "评测命令示例：",
+    "",
+    "```bash",
+    "aisbench eval \\",
+    "  --dataset "+m.run+" \\",
+    "  --model <model_id> \\",
+    "  --shots 0 --temperature 0.0",
+    "```",
+    "",
+    "## 计分规则",
+    "",
+    "| 项目 | 说明 |",
+    "| --- | --- |",
+    "| 主指标 | "+m.metric+" |",
+    "| 判分方式 | 精确匹配 / 执行通过制 |",
+    "| 分数处理 | 0 – 100，保留 1 位小数 |",
+    "| 无效样本 | 计 0 分，不安排重测 |",
+    "",
+    "## 复现方式说明",
+    "",
+    "本榜单支持两种复现口径，可在榜单上方「复现方式」切换，榜单与图表同步更新：",
+    "",
+    "- **官方论文复现**：采纳模型官方论文 / 技术报告公布的评测结果，推理参数以官方原文为准；",
+    "- **统一方法复现**：所有模型按上述统一评测框架与参数重跑，口径完全对齐，更适合横向比较。",
+    "",
+    "两种口径的分数可能存在小幅差异，属正常现象。",
+    "",
+    "---",
+    "",
+    "## 参考引用",
+    "",
+    "- "+m.ref,
+    "- [AISBench 评测方法白皮书（占位链接）](javascript:;)"
+  ].join("\n");
+});
+/* v0.35 评审修复 P1-2：BAR_COLORS 已删除——柱状图单色化（柱体统一主色），原「按名次一色」15 色映射与散点图「颜色=厂商」构成双重编码，且 #C2418F/#FA7305 与 百川智能/阶跃星辰 厂商品牌色撞色；名次信息已由分数降序+柱内数字标注完整表达 */
+/* v0.29 ⑩：新增复现方式口径状态，默认官方论文复现（accRepro="official"） */
+/* 🔶 原型 L732 状态变量 `var accDs=0,accView="num",accRepro="official"` 与 L733-736 accRows()
+   → Vue data（accDs/accViewIdx/accRepro）+ computed accRowsNow（映射与降序排序表达式逐字） */
+
+/* ==================== v0.29 ⑫：散点图「模型发布时间 vs 分数」（图表模式专用，位于柱状图下方） ==================== */
+/* 点标注的简化 logo：厂商首字圆徽 + 品牌色（同厂商同色；正式版替换为官方 logo 素材） */
+var VENDOR_LOGO={
+  "deepseek":{ch:"D",c:"#4D6BFE"},"NVIDIA":{ch:"N",c:"#76B900"},"qwen":{ch:"Q",c:"#9254DE"},
+  "zhipuai":{ch:"Z",c:"#2F54EB"},"ByteDance":{ch:"B",c:"#325AB4"},"Moonshot AI":{ch:"M",c:"#1F1F2E"},
+  "MiniMax":{ch:"M",c:"#E8A33D"},"OpenAI":{ch:"O",c:"#10A37F"},"Anthropic":{ch:"A",c:"#D97757"},
+  "Google":{ch:"G",c:"#4285F4"},"腾讯":{ch:"腾",c:"#0052D9"},"阶跃星辰":{ch:"阶",c:"#FA7305"},
+  "百川智能":{ch:"百",c:"#C2418F"},"Meta":{ch:"M",c:"#0866FF"}
+};
+
+/* ==================== 性能榜单：对比分析（照搬原站逻辑） ==================== */
+var AIS_MODELS=["DeepSeek R1","DeepSeek V4 Pro","DeepSeek V4 Flash","Kimi K3","GLM5.2","Qwen3 32B"];
+/* 🔶 原型 L895 `var aisModel="DeepSeek R1"`（状态）→ Vue data aisModel（默认值逐字保持） */
+var CHIP_AIS=[["Nvidia","GB300 NVL72","TRTLLM"],["华为","Atlas 800I A2","CANN"],["寒武纪","MLU590","MagicMind"]];
+var AIS=[
+ {vendor:"Nvidia", sys:"DGX GB300 NVL72", model:"DeepSeek R1", date:"2026-09-12", acc:"GB300 NVL72", fw:"TRTLLM", prec:"FP8", ctx:"1k/1k", x:[1800,11200,17600,21000], y0:[1800,1400,1100,656], y1:[320,480,760,1150], y2:[2100,2900,4200,6100], cards:72},
+ {vendor:"Nvidia", sys:"DGX GB300 NVL72", model:"DeepSeek R1", date:"2026-09-20", acc:"GB300 NVL72", fw:"TRTLLM", prec:"BF16", ctx:"1k/1k", x:[1500,9600,15200,18400], y0:[1500,1200,950,575], y1:[360,540,860,1280], y2:[2400,3300,4700,6800], cards:72},
+ {vendor:"华为", sys:"Atlas 800I A2 集群", model:"DeepSeek R1", date:"2026-09-25", acc:"Atlas 800I A2", fw:"CANN", prec:"BF16", ctx:"1k/1k", x:[1350,8800,14000,17200], y0:[1350,1100,875,538], y1:[410,600,950,1420], y2:[2700,3700,5300,7600], cards:64},
+ {vendor:"华为", sys:"Atlas 800I A2 集群", model:"DeepSeek R1", date:"2026-10-03", acc:"Atlas 800I A2", fw:"CANN", prec:"FP8", ctx:"1k/1k", x:[1600,10200,16100,19600], y0:[1600,1275,1006,613], y1:[370,550,880,1300], y2:[2500,3400,4900,7000], cards:64},
+ {vendor:"寒武纪", sys:"MLU590 推理服务器", model:"DeepSeek R1", date:"2026-10-06", acc:"MLU590", fw:"MagicMind", prec:"INT8", ctx:"1k/1k", x:[1200,7600,12100,15000], y0:[1200,950,756,469], y1:[460,680,1080,1600], y2:[3000,4100,5900,8400], cards:32},
+ {vendor:"寒武纪", sys:"MLU590 推理服务器", model:"DeepSeek R1", date:"2026-10-11", acc:"MLU590", fw:"MagicMind", prec:"FP16", ctx:"1k/1k", x:[1050,6800,10800,13600], y0:[1050,850,675,425], y1:[520,760,1200,1780], y2:[3400,4600,6600,9300], cards:32},
+ {vendor:"Nvidia", sys:"DGX GB300 NVL72", model:"DeepSeek V4 Pro", date:"2026-10-14", acc:"GB300 NVL72", fw:"TRTLLM", prec:"FP8", ctx:"1k/1k", x:[1650,10400,16500,19900], y0:[1650,1300,1031,622], y1:[365,545,870,1290], y2:[2450,3350,4800,6900], cards:72},
+ {vendor:"华为", sys:"Atlas 800I A2 集群", model:"DeepSeek V4 Pro", date:"2026-10-16", acc:"Atlas 800I A2", fw:"CANN", prec:"BF16", ctx:"1k/1k", x:[1280,8300,13200,16300], y0:[1280,1038,825,509], y1:[430,630,1000,1500], y2:[2800,3900,5500,7900], cards:64},
+ {vendor:"寒武纪", sys:"MLU590 推理服务器", model:"Kimi K3", date:"2026-10-18", acc:"MLU590", fw:"MagicMind", prec:"INT8", ctx:"1k/1k", x:[1120,7200,11500,14300], y0:[1120,900,719,447], y1:[490,720,1140,1690], y2:[3200,4400,6200,8800], cards:32},
+ {vendor:"Nvidia", sys:"DGX GB300 NVL72", model:"GLM5.2", date:"2026-10-21", acc:"GB300 NVL72", fw:"TRTLLM", prec:"FP8", ctx:"8k/8k", x:[980,6400,10200,12600], y0:[980,800,638,394], y1:[540,800,1260,1860], y2:[3500,4800,6800,9600], cards:72},
+ {vendor:"华为", sys:"Atlas 800I A2 集群", model:"Qwen3 32B", date:"2026-10-23", acc:"Atlas 800I A2", fw:"CANN", prec:"FP8", ctx:"1k/1k", x:[1700,10800,17000,20500], y0:[1700,1350,1063,641], y1:[355,525,840,1250], y2:[2350,3200,4600,6600], cards:64},
+ {vendor:"寒武纪", sys:"MLU590 推理服务器", model:"Qwen3 32B", date:"2026-10-26", acc:"MLU590", fw:"MagicMind", prec:"FP16", ctx:"1k/1k", x:[1260,8000,12700,15600], y0:[1260,1000,794,488], y1:[440,650,1030,1530], y2:[2900,4000,5700,8100], cards:32}
+];
+var CONC=[1,8,16,32];
+var AIS_METRICS=["输出吞吐 tokens/s","单卡输出吞吐","TTFT 平均 ms","TTFT P90 ms","TPOT 平均 ms","TPOT P90 ms","E2EL 平均 ms","E2EL P90 ms","总请求数","QPS"];
+var PER=10;
+/* 🔶 原型 L914-941 renderModelList / chipPanel / precPanel innerHTML 与事件接线 → OInput v-model + computed filteredModels + ORadioGroup / OCheckboxGroup v-model + clearChips/clearPrecs 等价替代；L942-955 aisFiltered() 四条过滤判定式逐字迁入 computed aisFilteredRows */
+function chipName(c){return c[0]+" "+c[1]+" ("+c[2]+")";}
+var PREC_OPTIONS=["BF16","FP8","INT8","FP16"];/* 🔶 原型 L937 renderModelList 内联数组 → 常量提升（字面值逐字；「清除选择」置空行为由 clearChips/clearPrecs 等价承接） */
+/* 🔶 原型 L942-955 aisFiltered()（DOM 读选中项）→ computed aisFilteredRows（读 Vue 状态；四条过滤判定式逐字保持） */
+var AIS_VIEWS=[
+  {xl:"交互性（输出吞吐/并发数）",yl:"输出吞吐 tokens/s",yi:"y0"},
+  {xl:"TTFT P90（ms）",yl:"输出吞吐 tokens/s",yi:"y1"},
+  {xl:"E2EL P90（ms）",yl:"输出吞吐 tokens/s",yi:"y2"}
+];
+/* 🔶 原型 L956 `var aisView=0` → Vue data；L962-968 [data-av] 点击接线 → OTab v-model + watcher */
+/* ==================== 小模型表格 ==================== */
+var SMALL=[
+  {vendor:"Nvidia",sys:"Nvidia H200",model:"Resnet50",date:"2026-09-12",acc:"76%",lat:"15ms",thr:"760715"},
+  {vendor:"Nvidia",sys:"Nvidia H200",model:"Bert-Large",date:"2026-09-14",acc:"88%",lat:"22ms",thr:"128450"},
+  {vendor:"华为",sys:"Atlas 300I Duo",model:"Resnet50",date:"2026-09-18",acc:"75%",lat:"19ms",thr:"412300"},
+  {vendor:"华为",sys:"Atlas 300I Duo",model:"Yolov8n",date:"2026-09-21",acc:"61%",lat:"12ms",thr:"586900"},
+  {vendor:"寒武纪",sys:"MLU370-X8",model:"Resnet50",date:"2026-09-25",acc:"74%",lat:"24ms",thr:"268500"},
+  {vendor:"寒武纪",sys:"MLU370-X8",model:"Bert-Large",date:"2026-09-28",acc:"86%",lat:"31ms",thr:"74200"},
+  /* v0.43（用户指令）：小模型表格与测评记录表同规格——扩至 12 条（首页 10 条与测评记录表等高）+ 每页 10 条分页器 */
+  {vendor:"燧原",sys:"云燮 i20",model:"Resnet50",date:"2026-10-02",acc:"73%",lat:"21ms",thr:"352800"},
+  {vendor:"燧原",sys:"云燮 i20",model:"Yolov8n",date:"2026-10-05",acc:"59%",lat:"14ms",thr:"498600"},
+  {vendor:"沐曦",sys:"曦思 N260",model:"Bert-Large",date:"2026-10-09",acc:"85%",lat:"28ms",thr:"89400"},
+  {vendor:"壁仞",sys:"壁砺 106",model:"Resnet50",date:"2026-10-13",acc:"72%",lat:"23ms",thr:"301500"},
+  {vendor:"Intel",sys:"Gaudi 3",model:"Bert-Large",date:"2026-10-17",acc:"87%",lat:"25ms",thr:"96300"},
+  {vendor:"AMD",sys:"Instinct MI325X",model:"Yolov8n",date:"2026-10-21",acc:"60%",lat:"13ms",thr:"540200"}
+];
+/* 🔶 原型 L1100-1108 renderSmall()（innerHTML 渲染 + data-sm 点击接线）→ ODataTable :data="smPageRows"（v0.43 computed 分页切片，id=全局行下标）+ act 列 formatter（查看 → openSmallModal；行为逐字） */
+
+/* 🔶 原型 L759-776 renderAcc() 图表模式分支 → 提取为独立函数 renderAccBars(rows)（网格/柱体构建代码逐字，含 v0.35 P1-2 行内注释）；
+   原型分支末尾 L775 `renderAccScatter(rows)` 调用 → 上提至调用方（Vue watcher/mounted：先 renderAccBars 后 renderAccScatter，顺序与时机一致） */
+function renderAccBars(rows){
+  var ymax=Math.ceil(Math.max.apply(null,rows.map(function(r){return r.score;}))/10)*10,grid=document.getElementById("accGrid");
+  var gl="";
+  for(var k=0;k<=5;k++){
+    var yv=ymax*k/5,pct=100-k*20;
+    gl+='<div class="accgl" style="top:'+pct+'%"><span>'+Math.round(yv)+'</span></div>';
+  }
+  gl+='<div class="accbars">'+rows.map(function(r,i){
+    var h=Math.round(r.score/ymax*100);
+    var lg=VENDOR_LOGO[r.vendor]||{c:"rgba(0,0,0,.6)"};
+    return '<div class="accbar" style="height:'+h+'%;background:'+lg.c+'">'/* v0.42 用户验收：柱色=散点图同厂商色板 VENDOR_LOGO.c（v0.35 P1-2 统一主色收回），两图颜色编码一致 */
+      +'<span class="val">'+r.score.toFixed(1)+'</span>'
+      +'<span class="lbl">'+r.name+'</span><span class="ven">'+r.vendor+'</span></div>';
+  }).join("")+'</div>';
+  grid.innerHTML=gl;
+}
+/* v0.29 ⑫ 散点图渲染函数（函数体逐字；其小节头注释与 VENDOR_LOGO 色板见前数据段） */
+function renderAccScatter(rows){
+  var box=document.getElementById("accScatter");
+  var W=Math.max(640,box.clientWidth||1050),H=380,L=56,R=26,T=26,B=58,iw=W-L-R,ih=H-T-B,DAY=864e5;
+  /* Y 轴域：自适应步长（1/2/5/10），网格线 4~6 条，虚线样式与柱状图一致 */
+  var mn=Infinity,mx=-Infinity;
+  rows.forEach(function(r){if(r.score<mn)mn=r.score;if(r.score>mx)mx=r.score;});
+  var steps=[1,2,5,10],step=10,si;
+  for(si=0;si<steps.length;si++){
+    step=steps[si];
+    if(Math.ceil(mx/step)*step-Math.floor(mn/step)*step<=6*step)break;
+  }
+  var lo=Math.floor(mn/step)*step,hi=Math.ceil(mx/step)*step;
+  if(hi===lo)hi+=step;
+  /* X 轴域：最早至最晚发布时间，两侧各留半个月 */
+  var ts=rows.map(function(r){return new Date(r.rel.replace(/-/g,"/")).getTime();});
+  var x0=Math.min.apply(null,ts)-15*DAY,x1=Math.max.apply(null,ts)+15*DAY;
+  function px(t){return L+(t-x0)/(x1-x0)*iw;}
+  function py(v){return T+ih-(v-lo)/(hi-lo)*ih;}
+  var s='<svg width="100%" height="'+H+'" viewBox="0 0 '+W+' '+H+'" xmlns="http://www.w3.org/2000/svg" style="display:block">';
+  for(var v=lo;v<=hi+1e-9;v+=step){
+    var y=py(v);
+    s+='<line x1="'+L+'" y1="'+y.toFixed(1)+'" x2="'+(W-R)+'" y2="'+y.toFixed(1)+'" stroke="rgba(0,0,0,.08)" stroke-dasharray="3 3"/>';/* v0.36 P2-26：虚线节奏 4 4→3 3，与柱状图 CSS dashed（1px 边框约 3px 段）视觉对齐 */
+    s+='<text class="tick" x="'+(L-10)+'" y="'+(y+4).toFixed(1)+'" text-anchor="end" font-size="11" fill="rgba(0,0,0,.4)">'/* v0.35 P1-1：刻度填充与性能页统一为 rgba 灰阶；v0.36 P2-26：刻度字族经 .tick 类取 --font-code，同柱状图（PRD ⑫） */+v+'</text>';
+  }
+  s+='<text x="16" y="'+(T+ih/2)+'" text-anchor="middle" font-size="12" fill="rgba(0,0,0,.6)" transform="rotate(-90 16 '+(T+ih/2)+')">分数</text>';
+  /* X 轴：按自然月生成刻度，标签 yy/MM，覆盖最早至最晚发布时间 */
+  var c0=new Date(x0),cur=new Date(c0.getFullYear(),c0.getMonth(),1);
+  if(cur.getTime()<x0)cur=new Date(cur.getFullYear(),cur.getMonth()+1,1);
+  while(cur.getTime()<=x1){
+    var tx=px(cur.getTime());
+    s+='<line x1="'+tx.toFixed(1)+'" y1="'+(T+ih)+'" x2="'+tx.toFixed(1)+'" y2="'+(T+ih+5)+'" stroke="rgba(0,0,0,.25)"/>';
+    s+='<text class="tick" x="'+tx.toFixed(1)+'" y="'+(T+ih+20)+'" text-anchor="middle" font-size="11" fill="rgba(0,0,0,.4)">'/* v0.35 评审修复 P2-6：横轴刻度数字 10→11px，兑现 PRD #48「刻度数字两图均维持 11px」；v0.36 P2-26：.tick mono 同柱状图 */+String(cur.getFullYear()).slice(-2)+"/"+("0"+(cur.getMonth()+1)).slice(-2)+'</text>';
+    cur=new Date(cur.getFullYear(),cur.getMonth()+1,1);
+  }
+  s+='<line x1="'+L+'" y1="'+(T+ih)+'" x2="'+(W-R)+'" y2="'+(T+ih)+'" stroke="rgba(0,0,0,.25)"/>';
+  s+='<text x="'+(L+iw/2)+'" y="'+(T+ih+42)+'" text-anchor="middle" font-size="12" fill="rgba(0,0,0,.6)">模型发布时间</text>';
+  /* 数据点：同厂商 + 同发布日期横向微偏移防重叠（如 DeepSeek V4 Pro / V4 Flash 同为 2026-08-28） */
+  var groups={};
+  rows.forEach(function(r){var k=r.vendor+"|"+r.rel;(groups[k]=groups[k]||[]).push(r);});
+  Object.keys(groups).forEach(function(k){
+    var g=groups[k],n=g.length;
+    g.forEach(function(r,gi){
+      var t=new Date(r.rel.replace(/-/g,"/")).getTime();
+      var x=px(t)+(n>1?(gi-(n-1)/2)*24:0),y=py(r.score);
+      var lg=VENDOR_LOGO[r.vendor]||{ch:String(r.vendor).charAt(0).toUpperCase(),c:"rgba(0,0,0,.6)"};
+      var td=encodeURIComponent(JSON.stringify({n:r.name,v:r.vendor,d:r.rel,p:r.param,s:r.score}));
+      s+='<g ais-tip="'+td+'" style="cursor:pointer">'
+        +'<circle cx="'+x.toFixed(1)+'" cy="'+y.toFixed(1)+'" r="17" fill="transparent"/>'
+        +'<circle cx="'+x.toFixed(1)+'" cy="'+y.toFixed(1)+'" r="11" fill="'+lg.c+'" stroke="#fff" stroke-width="2"/>'
+        +'<text x="'+x.toFixed(1)+'" y="'+y.toFixed(1)+'" text-anchor="middle" dominant-baseline="central" font-size="11" font-weight="700" fill="#fff" style="pointer-events:none">'+lg.ch+'</text>'
+        +'</g>';
+    });
+  });
+  s+='</svg>';
+  box.innerHTML=s;
+  /* v0.35 评审修复 P1-2：散点图「颜色=厂商」编码图例——复用全局 .legend/.dot 样式；同厂商同色、与图中厂商圆徽一一对应；顺序=按分数降序的厂商首次出现序 */
+  var vs=[],vseen={};
+  rows.forEach(function(r){if(!vseen[r.vendor]){vseen[r.vendor]=1;vs.push(r.vendor);}});
+  document.getElementById("accScatterLegend").innerHTML=vs.map(function(v){
+    var lg=VENDOR_LOGO[v]||{c:"rgba(0,0,0,.6)"};
+    return '<span><span class="dot" style="background:'+lg.c+'"></span>'+v+'</span>';
+  }).join("");
+  /* 悬停信息卡：模型名（加粗）+ 厂商、发布时间、参数量（次行）+ 分隔线 + 分数，沿用 ais-tip + showTip 机制 */
+  box.querySelectorAll("[ais-tip]").forEach(function(g){
+    g.addEventListener("mouseover",function(e){
+      var d=JSON.parse(decodeURIComponent(g.getAttribute("ais-tip")));
+      showTip('<span class="hc">'+d.n+'</span><br><span class="hc-sub">'+d.v+' · '+d.d+' · '+d.p+'</span><div class="sep"></div><b>分数：</b><span class="mono">'+d.s.toFixed(1)+'</span>',e.clientX,e.clientY);
+    });
+    g.addEventListener("mouseout",hideTip);
+  });
+}
+/* 🔶 原型 L858 window resize 监听（accView==="img" 时重渲散点）→ part10 mounted 内注册（判定与调用逐字）；
+   L859-871 [data-v] 页签接线 / accRepro change 接线 / renderAcc() 初始调用 → Vue watcher（accViewIdx/accDs/accRepro）+ mounted 等价承接 */
+
+/* 🔶 原型 L969-970 `function renderAisChart(){var recs=aisFiltered(),v=AIS_VIEWS[aisView];...}` → 签名显式化 renderAisChart(recs,v)
+  （全局状态读取改为入参；构建代码逐字）；调用点 = mounted 初始渲染 + 筛选器/视图 watcher，等价于原型 aisApply() 与 [data-av] 接线 */
+function renderAisChart(recs,v){
+  document.getElementById("aisAxisNote").textContent="横轴="+v.xl+"；纵轴="+v.yl+"；每条折线=一条提交记录（折线数量不限），节点=并发 1/8/16/32";
+  var box=document.getElementById("aisChart"),leg=document.getElementById("aisLegend");
+  if(!recs.length){box.innerHTML='<p class="none">当前筛选组合无命中记录，请调整筛选器。</p>';leg.innerHTML="";return;}
+  var W=1040,H=380,L=80,Rp=30,T=24,B=52;
+  var xmax=0,ymax=0;
+  recs.forEach(function(r){r[v.yi].forEach(function(x){xmax=Math.max(xmax,x);});r.x.forEach(function(y){ymax=Math.max(ymax,y);});});
+  function px(x){return L+(W-L-Rp)*x/(xmax*1.05);}
+  function py(y){return T+(H-T-B)*(1-y/(ymax*1.1));}
+  var s='<svg width="'+W+'" height="'+H+'" viewBox="0 0 '+W+' '+H+'" role="img" aria-label="AISBench 对比折线图">';
+  s+='<line x1="'+L+'" y1="'+(H-B)+'" x2="'+(W-Rp)+'" y2="'+(H-B)+'" stroke="rgba(0,0,0,.3)"/><line x1="'+L+'" y1="'+T+'" x2="'+L+'" y2="'+(H-B)+'" stroke="rgba(0,0,0,.3)"/>';
+  for(var k=0;k<=4;k++){
+    var yv=ymax*1.1*k/4,yy=py(yv);
+    s+='<line x1="'+L+'" y1="'+yy.toFixed(1)+'" x2="'+(W-Rp)+'" y2="'+yy.toFixed(1)+'" stroke="rgba(0,0,0,.06)"/>'
+      +'<text x="'+(L-8)+'" y="'+(yy+4).toFixed(1)+'" text-anchor="end" font-size="11" fill="rgba(0,0,0,.4)">'+Math.round(yv)+'</text>';
+    var xv=xmax*1.05*k/4;
+    s+='<text x="'+px(xv).toFixed(1)+'" y="'+(H-B+18)+'" text-anchor="middle" font-size="11" fill="rgba(0,0,0,.4)">'+Math.round(xv)+'</text>';
+  }
+  s+='<text x="'+((L+W-Rp)/2)+'" y="'+(H-8)+'" text-anchor="middle" font-size="12" fill="rgba(0,0,0,.6)">'+v.xl+'</text>';
+  s+='<text x="16" y="'+((T+H-B)/2)+'" text-anchor="middle" font-size="12" fill="rgba(0,0,0,.6)" transform="rotate(-90 16 '+((T+H-B)/2)+')">'+v.yl+'</text>';
+  recs.forEach(function(r,ri){
+    var col=GRAY[ri%GRAY.length];
+    var pts=CONC.map(function(c,i){return [px(r[v.yi][i]),py(r.x[i]),i];});
+    s+='<polyline points="'+pts.map(function(p){return p[0].toFixed(1)+","+p[1].toFixed(1);}).join(" ")+'" fill="none" stroke="'+col+'" stroke-width="2"/>';
+    pts.forEach(function(p,i){
+      var tipAttr='ais-tip="'+encodeURIComponent(JSON.stringify({d:r.date,x:r[v.yi][i],y:r.x[i],xl:v.xl,yl:v.yl,cards:r.cards,c:CONC[i],prec:r.prec}))+'"';
+      s+='<circle cx="'+p[0].toFixed(1)+'" cy="'+p[1].toFixed(1)+'" r="5" fill="#fff" stroke="'+col+'" stroke-width="2" '+tipAttr+' style="cursor:pointer"></circle>';
+    });
+  });
+  s+='</svg>';
+  box.innerHTML=s;
+  leg.innerHTML=recs.map(function(r,ri){return '<span>'+dotHtml(ri)+r.vendor+' '+r.sys+' · '+r.fw+' · '+r.prec+'（'+r.date+'）</span>';}).join("");
+  box.querySelectorAll("[ais-tip]").forEach(function(c){
+    c.addEventListener("mouseover",function(e){
+      var d=JSON.parse(decodeURIComponent(c.getAttribute("ais-tip")));
+      showTip('<b>提交日期：</b>'+d.d+'<br><b>'+d.xl+'：</b>'+d.x
+        +'<br><b>'+d.yl+'：</b>'+d.y+'<br><b>总芯片卡数：</b>'+d.cards
+        +'<br><b>并发数：</b>'+d.c+'<br><b>数据精度：</b>'+d.prec,e.clientX,e.clientY);
+    });
+    c.addEventListener("mouseout",hideTip);
+  });
+}
+
+/* ==================== Vue 根组件（状态/计算/侦听/方法 ← 原型 DOM 直写接线的等价迁移；表达式与文案逐字） ==================== */
+const app = Vue.createApp({
+  data(){
+    return {
+      /* 🔶 原型 L612 PAGES/go 切页状态 → page（v0.37：三页 section.page 显隐走 :class="{ show: ... }"，同原型 classList.toggle） */
+      page:"home",
+      /* 🔶 原型 L732 `var accDs=0,accView="num",accRepro="official"` → accDs/accViewIdx/accRepro（默认值逐字；accView 由 accViewIdx 派生） */
+      accDs:0,accViewIdx:0,accRepro:"official",
+      /* 🔶 原型 L895 aisModel / L956 aisView / L1027 aisPage → Vue data（默认值逐字）；L935/L937 芯片与精度面板初始全勾选 → 全量数组 */
+      aisModel:"DeepSeek R1",
+      aisChips:CHIP_AIS.map(chipName),aisPrecs:PREC_OPTIONS.slice(),aisCtx:"1k/1k",
+      aisView:0,aisPage:1,smPage:1,perPage:PER,accTblH:null,
+      toast:null,
+      /* G4：图表悬浮提示 OPopup 受控三态（tipRect 视口坐标快照，width/height 恒 0=点定位；data 深层 reactive → showTip 原地改 left/top 即触发重定位） */
+      tipVisible:false,tipHtml:"",tipRect:{left:0,top:0,width:0,height:0},
+      /* 🔶 原型 L469-505 三弹窗 DOM（aisModal/pdfModal/methodModal）显隐与正文 → ODialog v-model:visible + 状态字段（bindModal L596-603 遮罩点击关闭=组件默认 maskClose；✕ 走 #header 插槽 .mclose） */
+      aisModalVisible:false,aisMTitle:"",aisMSub:"",aisMOv:"",aisMHw:"",aisMSw:"",aisMDataHtml:"",
+      pdfVisible:false,pdfTitle:"",pdfName:"",
+      methodVisible:false,methodTitle:"",methodMdHtml:""
+    };
+  },
+  computed:{
+    accView(){return ["num","img"][this.accViewIdx];},
+    accDsList(){return ACC_DS;},
+    chipOptions(){return CHIP_AIS.map(chipName);},
+    precOptions(){return PREC_OPTIONS;},
+    modelOptions(){
+      /* v0.42：OSelect filterable 内置关键字过滤（原型 L914-922 renderModelList 的过滤判定由组件承接），computed 仅供全量选项 */
+      return AIS_MODELS;
+    },
+    accRowsNow(){
+      /* 🔶 原型 L733-736 accRows()（映射与降序排序表达式逐字；accRepro 全局读 → this.accRepro 经 accScore 第三参传递） */
+      var ds=ACC_DS[this.accDs],repro=this.accRepro;
+      return ACC_MODELS.map(function(m,i){return Object.assign({},m,{score:accScore(ds,i,repro)});})
+        .sort(function(a,b){return b.score-a.score;});
+    },
+    accTableRows(){return this.accRowsNow.map(function(r,i){return Object.assign({},r,{id:i});});},
+    accColumns(){
+      /* 🔶 原型 L355 thead（列序/列名/排序列 64px → column.width）+ L752-757 行单元格（rank/mname+msub/score-big/查看链接 → formatter VNode；
+         测试方法列内联 onclick="openMethod(DS)" → v0.43 用户改判：与性能榜单测评记录表一致，用 OButton.od-btn-view（outline sm「查看」）替代 OLink */
+      var vm=this,ds=ACC_DS[this.accDs];
+      return [
+        {key:"rank",label:"排序",width:64,formatter:function(o){return Vue.h("span",{class:"rank"+(o.rowIndex<3?" top":"")},String(o.rowIndex+1));}},
+        {key:"name",label:"模型",formatter:function(o){return Vue.h("div",null,[Vue.h("div",{class:"mname"},o.row.name),Vue.h("div",{class:"msub"},o.row.tag+" · "+o.row.vendor)]);}},
+        {key:"rel",label:"模型发布时间"},
+        {key:"ev",label:"评测时间",formatter:function(){return ACC_EVAL[ds];}},
+        {key:"param",label:"参数量"},
+        {key:"score",label:"分数",formatter:function(o){return Vue.h("span",{class:"score-big"},o.row.score.toFixed(1));}},
+        {key:"act",label:"测试方法",formatter:function(){return Vue.h(window.opendesign.OButton,{class:"od-btn-view",variant:"outline",onClick:function(){vm.openMethod(ds);}},"查看");}}
+      ];
+    },
+    ovCards(){
+      /* 🔶 原型 L874-891 renderAccOverview innerHTML → computed + 模板渲染（每数据集取分 top3、官方论文复现口径固定，表达式逐字）；onclick="goToAccDs(di)" → 模板 @click */
+      return ACC_DS.map(function(ds,di){
+        var rows=ACC_MODELS.map(function(m,i){return Object.assign({},m,{score:ACC_SCORES[ds][i]});})
+          .sort(function(a,b){return b.score-a.score;}).slice(0,3);
+        return {ds:ds,di:di,desc:ACC_DESC[ds],top:rows};
+      });
+    },
+    aisFilteredRows(){
+      /* 🔶 原型 L942-955 aisFiltered()（四条过滤判定式逐字；DOM 读选中项 → Vue 状态） */
+      var aisModel=this.aisModel,chips=this.aisChips,precs=this.aisPrecs,ctx=this.aisCtx;
+      return AIS.filter(function(r){
+        var cn=r.vendor+" "+r.acc+" ("+r.fw+")";
+        if(r.model!==aisModel)return false;
+        if(chips.length&&chips.indexOf(cn)<0)return false;
+        if(precs.length&&precs.indexOf(r.prec)<0)return false;
+        if(r.ctx!==ctx)return false;
+        return true;
+      });
+    },
+    aisHitText(){
+      /* 🔶 原型 L1085-1088 aisApply() 命中数文案（"命中 N 条记录" 逐字）→ computed（静态初值被 aisApply 覆盖，绑定等价） */
+      return "命中 "+this.aisFilteredRows.length+" 条记录";
+    },
+    aisPageRows(){
+      /* 🔶 原型 L1028-1045 renderAisTable/aisGoPage（全量 AIS 渲染+display:none 分页 → computed 切片当前页；id=全局行号，供 openAisModal） */
+      var p=this.aisPage;
+      return AIS.map(function(r,i){return Object.assign({},r,{id:i});}).slice((p-1)*PER,p*PER);
+    },
+    aisTotal(){return AIS.length;},
+    aisColumns(){
+      /* 🔶 原型 L422 thead + L1032-1033 行单元格（data-am 查看按钮 → OButton formatter，od-btn-view 对齐 .btn.outline.sm） */
+      var vm=this;
+      return [
+        {key:"vendor",label:"厂商"},{key:"sys",label:"整机系统"},{key:"model",label:"模型"},{key:"date",label:"提交日期"},
+        {key:"acc",label:"加速器"},{key:"fw",label:"推理框架"},{key:"prec",label:"精度"},{key:"ctx",label:"上下文长度"},
+        {key:"act",label:"测评记录",formatter:function(o){return Vue.h(window.opendesign.OButton,{class:"od-btn-view",variant:"outline",onClick:function(){vm.openAisModal(o.row.id);}},"查看");}}
+      ];
+    },
+    smPageRows(){
+      /* v0.43（用户指令）：与测评记录表同规格——全量 SMALL 渲染+切片当前页（id=全局行号，供 openSmallModal） */
+      var p=this.smPage;
+      return SMALL.map(function(s,i){return Object.assign({},s,{id:i});}).slice((p-1)*PER,p*PER);
+    },
+    smTotal(){return SMALL.length;},
+    smColumns(){
+      /* 🔶 原型 L437 thead + L1102-1104 行单元格（thr 列 <td class="mono"> → formatter span.mono；data-sm 查看按钮 → OButton formatter） */
+      var vm=this;
+      return [
+        {key:"vendor",label:"厂商"},{key:"sys",label:"被测系统"},{key:"model",label:"模型"},{key:"date",label:"提交日期"},
+        {key:"acc",label:"准确率"},{key:"lat",label:"延迟"},
+        {key:"thr",label:"吞吐量（samples/s）",formatter:function(o){return Vue.h("span",{class:"mono"},o.cellValue);}},
+        {key:"act",label:"测评记录",formatter:function(o){return Vue.h(window.opendesign.OButton,{class:"od-btn-view",variant:"outline",onClick:function(){vm.openSmallModal(o.row.id);}},"查看");}}
+      ];
+    }
+  },
+  watch:{
+    /* 🔶 原型 L859-865 [data-v] 页签接线 / L737-744 renderAccTabs 数据集页签 / L866-870 accRepro change 接线 → watcher（renderAcc 等价） */
+    accViewIdx(){this.renderAccView();},
+    accDs(){this.renderAccView();},
+    accRepro(){this.renderAccView();},
+    /* 🔶 原型 L923-931 模型单选/搜索接线、L938 ctx change、L939-941 芯片/精度勾选接线、L962-968 [data-av] 接线 → watcher（aisApply/renderAisChart 等价） */
+    aisModel(){this.renderAisChartNow();},
+    aisChips(){this.renderAisChartNow();},
+    aisPrecs(){this.renderAisChartNow();},
+    aisCtx(){this.renderAisChartNow();},
+    aisView(){this.renderAisChartNow();}
+  },
+  methods:{
+    renderAccView(){
+      /* 🔶 原型 L745-776 renderAcc()：num/img wrap 显隐 → 模板 v-show；图表模式绘制保留（柱状+散点，顺序同原型分支） */
+      var vm=this;
+      this.$nextTick(function(){
+        if(vm.accView==="img"){renderAccBars(vm.accRowsNow);renderAccScatter(vm.accRowsNow);}
+      });
+    },
+    renderAisChartNow(){
+      var vm=this;
+      this.$nextTick(function(){renderAisChart(vm.aisFilteredRows,AIS_VIEWS[vm.aisView]);});
+    },
+    go(p){
+      /* 🔶 原型 L613-619 go()：class show/nav on 切换 → 模板 :class 绑定；重绘与回顶逐字 */
+      this.page=p;
+      var vm=this;
+      /* v0.35 评审修复 P2-16：切页时按当前实际宽度重绘散点图（原先仅 window resize 重绘，从隐藏页切入时 clientWidth 采样失真） */
+      this.$nextTick(function(){
+        if(p==="acc"&&vm.accView==="img")renderAccScatter(vm.accRowsNow);
+        /* v0.43：首页挂载时精度表隐藏（rect=0）量不到行高——切入 acc 页后补测表格视口高度（表头+15 行） */
+        if(p==="acc")vm.measureAccTbl();
+        window.scrollTo(0,0);
+      });
+    },
+    goToAccDs(di){
+      /* 🔶 原型 L886-890 goToAccDs()：accDs 赋值 + renderAcc() → watcher 承接；go("acc") 逐字等价 */
+      this.accDs=di;
+      this.go("acc");
+    },
+    openMethod(ds){
+      /* 🔶 原型 L604-609 openMethod()：DOM 直写 → 状态字段；文案逐字 */
+      this.methodTitle="测试方法 · "+ds;
+      /* v0.29 ⑪：正文渲染该数据集的 Markdown 测试方法文档（占位内容） */
+      this.methodMdHtml=mdRender(ACC_MD[ds]);
+      this.methodVisible=true;
+    },
+    openPdf(name){
+      /* v0.26：点击文档打开 PDF 浏览（预览+下载），与主站行为一致 */
+      this.pdfName=name;
+      this.pdfTitle=name;
+      this.pdfVisible=true;
+    },
+    pdfDownload(){
+      /* 🔶 原型 L595 pdfDl 监听 alert("开始下载："+pdfName) → useToast 轻提示（文案逐字） */
+      this.toast.show("开始下载："+this.pdfName);
+    },
+    /* v0.42：clearChips/clearPrecs 随面板移除（OSelect clearable 承接清除） */
+    pinSelPop(v){
+      /* v0.42：OSelect 选项层若被库 teleport 到 body（非 .o-select 子元素），CSS 钉死选择器不命中；
+         打开时按触发器 rect 归位到正下方（对齐原版 .fdd-panel top:36px 观感）；子元素情形由 CSS .o-select>.o-popup 承接，此处跳过 */
+      if(!v)return;
+      var el=this.$el;
+      this.$nextTick(function(){requestAnimationFrame(function(){
+        var r=el.getBoundingClientRect();
+        document.querySelectorAll(".o-popup").forEach(function(p){
+          var s=getComputedStyle(p);
+          if(s.display==="none"||s.visibility==="hidden"||p.getBoundingClientRect().height<10)return;
+          if(el.contains(p))return;
+          p.style.transform="none";
+          p.style.position="absolute";
+          p.style.top=(r.bottom+4+window.scrollY)+"px";
+          p.style.left=(r.left+window.scrollX)+"px";
+          p.style.bottom="auto";p.style.right="auto";
+        });
+      });});
+    },
+    openAisModal(i){
+      /* 🔶 原型 L1047-1084 openAisModal()：DOM 直写 → 状态字段；全部 kv 文案与数据表构建表达式逐字 */
+      var r=AIS[i],vm=this;
+      this.aisMTitle=r.vendor+" "+r.sys+" · "+r.model;
+      this.aisMSub="提交日期 "+r.date+" · "+r.fw+" · "+r.prec+" · 上下文 "+r.ctx;
+      this.aisMOv=
+        kvRow("模型",r.model)+kvRow("数据格式精度",r.prec)+kvRow("数据集","AISBench 标准推理数据集 v2（占位）")
+        +kvRow("上下文长度",r.ctx)+kvRow("提交者（厂商名字）",r.vendor)
+        /* 🔶 原型 L1054 内联 onclick="alert('提交记录地址（占位链接）')" → id="aisRecLink" + bindRecLink 后置接线（useToast 文案逐字） */
+        +kvRow("提交地址（链接）",'<a href="javascript:void(0)" id="aisRecLink">https://repo.example.com/aisbench/records/'+(1000+i)+'</a>')
+        +kvRow("提交日期",r.date);
+      this.aisMHw=
+        kvRow("系统名",r.sys)+kvRow("节点数",(r.cards>=64?"2":"1")+" 节点")
+        +kvRow("Processor(CPU)型号*每节点数量","Intel Xeon Platinum 8380(40C-80T) × 2")
+        +kvRow("核数/Processor","80 核 / 每路 40 核")
+        +kvRow("Accelerator型号*每节点数量",r.acc+" × "+(r.cards/(r.cards>=64?2:1)))
+        +kvRow("显存","单卡 288 GB HBM4（占位）")+kvRow("网络/互联","400 Gb/s RDMA（占位）");
+      this.aisMSw=
+        kvRow("驱动",r.vendor+" 驱动 v24.3（占位）")+kvRow("操作系统","openEuler 22.03 LTS")
+        +kvRow("推理框架/引擎",r.fw+"（引擎版本占位）")+kvRow("推理优化","KV-Cache 复用 + 连续批处理（占位）")+kvRow("策略","吞吐优先（占位）");
+      this.aisMDataHtml=AIS_METRICS.map(function(m,mi){
+        var cells=CONC.map(function(c,ci){
+          var v;
+          if(mi===0)v=r.x[ci];
+          else if(mi===1)v=Math.round(r.x[ci]/r.cards);
+          else if(mi===2)v=Math.round(r.y1[ci]*0.8);
+          else if(mi===3)v=r.y1[ci];
+          else if(mi===4)v=Math.round(28+ci*12);
+          else if(mi===5)v=Math.round(45+ci*20);
+          else if(mi===6)v=Math.round(r.y2[ci]*0.8);
+          else if(mi===7)v=r.y2[ci];
+          else if(mi===8)v=200*c;
+          else v=(r.x[ci]/(r.y2[ci]/1000)).toFixed(1);
+          return '<td class="mono">'+v+'</td>';
+        }).join("");
+        return '<tr><td>'+m+'</td>'+cells+'</tr>';
+      }).join("");
+      this.aisModalVisible=true;
+      this.bindRecLink();
+    },
+    bindRecLink(){
+      /* ODialog unmountOnHide 默认开启：每次打开重挂载 v-html 内容，nextTick+setTimeout(0) 后接线提交地址链接 */
+      var vm=this;
+      this.$nextTick(function(){
+        setTimeout(function(){
+          var el=document.getElementById("aisRecLink");
+          if(el)el.addEventListener("click",function(){vm.toast.show("提交记录地址（占位链接）");});
+        },0);
+      });
+    },
+    measureAccTbl(){
+      /* v0.43（用户指令）：accTblH = 表头高 + 15×首行行高（+2px 上下边框）→ ODataTable :height 固定视口，第 16-20 名走表内滚动条 */
+      var el=this.$refs.accTbl&&this.$refs.accTbl.$el;
+      if(!el)return;
+      var hd=el.querySelector("thead tr")||el.querySelector("thead");
+      var row=el.querySelector("tbody tr");
+      if(!hd||!row||!row.getBoundingClientRect().height)return;
+      this.accTblH=Math.round(hd.getBoundingClientRect().height+15*row.getBoundingClientRect().height)+2;
+    },
+    openSmallModal(i){
+      /* 🔶 原型 L1110-1130 openSmallModal()：复用 aisModal 弹窗；全部 kv 文案与数据表构建表达式逐字 */
+      var s=SMALL[i];
+      this.aisMTitle=s.vendor+" "+s.sys+" · "+s.model;
+      this.aisMSub="提交日期 "+s.date+" · 小模型测评记录";
+      this.aisMOv=
+        kvRow("厂商",s.vendor)+kvRow("被测系统",s.sys)+kvRow("模型",s.model)+kvRow("提交日期",s.date);
+      this.aisMHw=
+        kvRow("系统名",s.sys)+kvRow("节点数","1 节点")
+        +kvRow("Processor(CPU)型号*每节点数量","Intel Xeon Platinum 8380(40C-80T) × 2")
+        +kvRow("核数/Processor","80 核 / 每路 40 核")
+        +kvRow("Accelerator型号*每节点数量",s.sys.replace(s.vendor+" ","")+" × 8")
+        +kvRow("显存","单卡 96 GB（占位）")+kvRow("网络/互联","200 Gb/s（占位）");
+      this.aisMSw=
+        kvRow("驱动",s.vendor+" 驱动 v24.3（占位）")+kvRow("操作系统","openEuler 22.03 LTS")
+        +kvRow("推理框架/引擎","推理引擎（占位）")+kvRow("推理优化","算子融合 + 量化加速（占位）")+kvRow("策略","时延优先（占位）");
+      this.aisMDataHtml=
+        '<tr><td>准确率</td><td colspan="4" class="mono">'+s.acc+'</td></tr>'
+        +'<tr><td>延迟</td><td colspan="4" class="mono">'+s.lat+'</td></tr>'
+        +'<tr><td>吞吐量（samples/s）</td><td colspan="4" class="mono">'+s.thr+'</td></tr>';
+      this.aisModalVisible=true;
+    }
+  },
+  mounted(){
+    this.toast=window.opendesign.useToast();
+    tipVm=this;/* G4：顶层 showTip/hideTip 经此引用写 tip 三态（下方局部 var vm 为原型接线专用，勿混） */
+    var vm=this;
+    /* 🔶 原型 L858 resize 监听（判定与调用逐字）→ mounted 内注册 */
+    window.addEventListener("resize",function(){if(vm.accView==="img")renderAccScatter(vm.accRowsNow);});
+    /* 🔶 原型 L871 renderAcc() / L932 renderModelList() / L1046 renderAisTable() / L1131 renderSmall() / L1145 aisApply()
+       初始渲染 → 响应式 computed 自动承接；折线图为命令式 innerHTML 构建，需在 mounted 显式首绘（等价 aisApply()） */
+    renderAisChart(this.aisFilteredRows,AIS_VIEWS[this.aisView]);
+    /* v0.43（用户指令）：精度榜表格视口=表头+15 行高——mounted 实测（字体/库样式就绪后），行高变化时（数据集/口径切换不改变行高）无需重测 */
+    this.$nextTick(function(){setTimeout(function(){vm.measureAccTbl();},80);});
+  }
+});
+for (const [name, def] of Object.entries(window.opendesign)) {
+  if (/^O[A-Z][A-Za-z]*$/.test(name) && (typeof def === 'object' || typeof def === 'function')) {
+    app.component(name, def);
+  }
+}
+app.mount('#app');
+</script>
+</body>
+</html>
